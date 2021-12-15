@@ -7,13 +7,13 @@ Provides Collectible status and log output.
 ```
 ${Collectible[id|name].Collected(optional, assumed if absent)} returns true/false
 
-/collectible need|collected log|bazaar (optional: expansion|achievement name)
+/collectible need|collected log|bazaar (optional: expansion|collection name)
 ```
 
-### Example Usage TLO
+### TLO Usage Examples
 
 ```
-${Collectible[]} returns true/false
+${Collectible[...]} returns true/false
 ```
 
 ```
@@ -24,11 +24,12 @@ ${Collectible[81723]}
 
 ```
 MQ2Hud.ini
+
 [Elements]
 CollectionItemMO = 7,30,0,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItem[=${EverQuest.LastMouseOver.Tooltip}]}]},Collected,Need]},""]},""]}
 ```
 
-### Example Usage Slash Command
+### Slash Command Usage Examples
 ```
 /collectible collected log
 
