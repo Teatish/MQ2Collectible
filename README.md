@@ -7,7 +7,7 @@ Provides Collectible status and log output.
 ```
 ${Collectible[id|name].Collected(optional, assumed if absent)} returns true/false
 
-/collectible need|collected log|bazaar (optional: expansion|collection name)
+/collectible collected|need|both log|bazaar (optional: expansion|collection name)
 ```
 
 ### TLO Usage Examples
@@ -68,6 +68,19 @@ BuyPriceMax=1
 Outputs logfile Collectible_Need_Dead_Relics.ini
 
 [Collectible Name]
+SellPriceMin=2000000
+BuyPriceMax=2000000
+```
+
+
+```
+/collectible both bazaar collection Headhunter (The Overthere)
+
+Outputs logfile Collectible_Both_Headhunter_(The_Overthere).ini
+
+[Collectible Name]
+BuyPriceMin=1
+BuyPriceMax=1
 SellPriceMin=2000000
 BuyPriceMax=2000000
 ```
