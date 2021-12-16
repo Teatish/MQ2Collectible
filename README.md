@@ -6,24 +6,28 @@
 ## Usage
 
 ```
-${Collectible[id|name].Collected(optional, assumed if absent)} returns true/false
+${Collectible[id|name].Collected(optional)} returns true/false
 
-/collectible collected|need|both|help log|bazaar (optional: expansion|collection name)
+/collectible collected|need|both|help log|bazaar|console (optional: expansion|collection "name")
 ```
 
-Parameters must be ordered as shown.
+-- Parameters must be ordered as shown.
+-- The "name" must be enclosed with quotations.
+-- Output to console requires the collection "name".
+-- Output to console not provided for expansion due to potential overflow and clogging in general.
 
-### Convenience Abbreviations
+### Convenience Parameters
 
 ```
-collected|c|coll
-need|n
-both|b
-help|h|(empty)
-log|l
-bazaar|baz|b
-expansion|exp|e
-collection|c|coll
+-cd|collected
+-n|need
+-b|both
+-h|h|help|(no parameters)
+-l|log
+-bz|bazaar
+-cs|console
+-e|expansion
+-cn|collection
 ```
 
 ## TLO Examples

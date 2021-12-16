@@ -1,22 +1,29 @@
-// MQ2Collectible.cpp : Defines the entry point for the DLL application.
+// MQ2Collectible.cpp
 //
-
-// PLUGIN_API is only to be used for callbacks.  All existing callbacks at this time
-// are shown below. Remove the ones your plugin does not use.  Always use Initialize
-// and Shutdown for setup and cleanup.
+// by American Nero, December 16, 2021
+//
+// Appreciation to Kaen01 for his suggestion to add logfile output in Bazaar.mac format
+// and Knightly and Brainiac for technical guidance.
+//
+// Provides command /collectible that produces logfiles
+// Provides TLO ${Collectible} that retrieves a collectibles status (true = collected, false = need)
+//
+// Repo with detailed usage at https://gitlab.com/redguides/plugins/mq2collectible/README.MD
 
 #include <mq/Plugin.h>
 
 PreSetup("MQ2Collectible");
 PLUGIN_VERSION(0.1);
 
-void ShowHelp()
-{
-			WriteChatf("\ao[MQ2Collectible] \arUsage: \ag/collectible\ag collected|need|both|help log|bazaar expansion|collection name\aw");
-}
+// ----------------------------------------------
+// Command section
+// ----------------------------------------------
+
+void ShowCMDHelp();
 
 void CollectibleCMD(SPAWNINFO* pChar, char* szLine)
 {
+
 	bool bCollected 		= false;
 	bool bNeed      		= false;
 	bool bLog				= false;
@@ -24,85 +31,101 @@ void CollectibleCMD(SPAWNINFO* pChar, char* szLine)
 	bool bExpansion			= false;
 	bool bCollection		= false;
 
-	char* szName;
+	char szName[256] 		= { 0 };
 
-	int  id 				= 0;
+	int  iItemID			= 0;
 
-	PCHARINFO pCharInfo = GetCharInfo();
-	PcProfile* pCharInfo2 = GetPcProfile();
+	// Parse Parameters
 
-	// Begin Parameters
-
-	char szArg[MAX_STRING] = { 0 };
+	char szArg[16] = { 0 };
 	GetArg(szArg, szLine, 1);
 
-	if (strlen(szLine)==0 || !_stricmp(szArg, "help")) {
-		ShowHelp();
+	if (strlen(szLine)==0 || !_stricmp(szArg, "help") || !_stricmp(szArg, "-h")) {
+		ShowCMDHelp();
 		return;
 	}
 
-	if (!_stricmp(szArg, "collected")) {
+	if (!_stricmp(szArg, "collected") || !_stricmp(szArg, "-cd")) {
 		bCollected = true;
-	} else if (!_stricmp(szArg, "need")) {
+	} else if (!_stricmp(szArg, "need") || !_stricmp(szArg, "-n")) {
 		bNeed = true;
-	} else if (!_stricmp(szArg, "both")) {
+	} else if (!_stricmp(szArg, "both") || !_stricmp(szArg, "-b")) {
 		bCollected = true;
 		bNeed = true;
 	} else {
-		ShowHelp();
+		ShowCMDHelp();
 		return;
 	}
-
-	WriteChatf("Type: %s",szArg);
 
 	GetArg(szArg, szLine, 2);
 
-	if (!_stricmp(szArg, "log") || !_stricmp(szArg, "l")) {
+	if (!_stricmp(szArg, "log") || !_stricmp(szArg, "-l")) {
 		bLog = true;
-		WriteChatf("log");
-	} else if (!_stricmp(szArg, "bazaar") || !_stricmp(szArg, "baz") || !_stricmp(szArg, "b")) {
+	} else if (!_stricmp(szArg, "bazaar") || !_stricmp(szArg, "-bz")) {
 		bBazaar = true;
-		WriteChatf("bazaar");
+	} else if (!_stricmp(szArg, "console") || !_stricmp(szArg, "-cs")) {
+	
 	} else {
-		ShowHelp();
+		ShowCMDHelp();
 		return;
 	}
 
 	GetArg(szArg, szLine, 3);
 
 	if (strlen(szArg)) {
-		if (!_stricmp(szArg, "expansion") || !_stricmp(szArg, "exp") || !_stricmp(szArg, "e")) {
+		if (!_stricmp(szArg, "expansion") || !_stricmp(szArg, "-e")) {
 			bExpansion = true;
-			WriteChatf("Expansion");
-		} else if (!_stricmp(szArg, "collections") || !_stricmp(szArg, "collection") || !_stricmp(szArg, "coll") || !_stricmp(szArg, "c")) {
+		} else if (!_stricmp(szArg, "collection") || !_stricmp(szArg, "-cn")) {
 			bCollection = true;
-			WriteChatf("Collection");
 		} else {
-			ShowHelp();
+			ShowCMDHelp();
 			return;
 		}
 	}
 
 	if (bExpansion || bCollection) {
-		szName = GetNextArg(szLine);
-
+		GetArg(szName, szLine, 4);
 		if (strlen(szName)==0) {
-			ShowHelp();
+			ShowCMDHelp();
 			return;
 		}
 		if (IsNumber(szName)) {
-			id = atoi(szName);
-			if (id<1) {
-				ShowHelp();
+			int iItemID = atoi(szName);
+			if (iItemID<1) {
+				ShowCMDHelp();
 				return;
 			}
 		}
-		WriteChatf("Name: %s", szName);
 	}
 
-	// End Parameters
+	// Look up the collectibles and prepare logfile
 
+	if (bExpansion) {
+
+	}
+
+	// PCHARINFO pCharInfo = GetCharInfo();
+	// PcProfile* pCharInfo2 = GetPcProfile();
 }
+
+void ShowCMDHelp()
+{
+			WriteChatf("\awMQ2Collectible \ayUsage: \ag/collectible collected|need|both|help log|bazaar|console (optional unless console then specify collection: expansion|collection \"name\")");
+			WriteChatf("\awMQ2Collectible \ayAbbreviations: \ag-cd|collected, -nd|need, -b|both, -h|h|help, -l|log, -bz|bazaar, -cs|console, -e|expansion, -cn|collection\n");
+			WriteChatf("\awMQ2Collectible \ayExample: \ag/collectible need log collection \"Dead Relics\"\aw Quotations required. Produces logfile with collectibles needed from Dead Relics collection.");
+			WriteChatf("\awMQ2Collectible \ayExample: \ag/collectible -n -l -cn \"Dead Relics\"\aw Same as above with abbreviated parameters.");
+			WriteChatf("\awMQ2Collectible \ayExample: \ag/collectible -b -bz -e \"Terror of Luclin\"\aw Produces Bazaar.mac compatible logfile with all collected and uncollected collectibles from Terror of Luclin expansion.");
+			WriteChatf("\awMQ2Collectible \ayExample of logfile naming convention: \agCollectible_need_bazaar_Terror_of_Luclin.ini");
+			WriteChatf("\awMQ2Collectible \ayExample console: \ag/collectible -b -cs -cn \"Flame-Licked Clothing\n\aw Outputs the status of collectibles from the collection.");
+			WriteChatf("\awMQ2Collectible \ayFor more examples see \aghttps://gitlab.com/redguides/plugins/mq2collectible/README.MD");
+			// WriteChatf("");
+}
+
+// ----------------------------------------------
+// TLO Section
+// ----------------------------------------------
+
+void ShowTLOHelp();
 
 void CollectibleTLO(SPAWNINFO* pChar, char* szLine)
 {
@@ -111,6 +134,10 @@ void CollectibleTLO(SPAWNINFO* pChar, char* szLine)
 	PcProfile* pCharInfo2 = GetPcProfile();
 
 }
+
+// ----------------------------------------------
+// Plugin APIs
+// ----------------------------------------------
 
 PLUGIN_API void InitializePlugin()
 {
@@ -134,7 +161,6 @@ PLUGIN_API void ShutdownPlugin()
 	RemoveMQ2Data("collectible");
 }
 
-
 /**
  * @fn SetGameState
  *
@@ -155,7 +181,6 @@ PLUGIN_API void SetGameState(int GameState)
 {
 	// DebugSpewAlways("MQ2Collectible::SetGameState(%d)", GameState);
 }
-
 
 /**
  * @fn OnPulse
