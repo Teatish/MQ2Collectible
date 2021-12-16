@@ -53,7 +53,7 @@ When using bazaar option, please note:
 ```
 collected: assumes you want to sell collectibles
 need     : assumes you want to buy collectibles
-both     : makes no assumptions and populates with buy and sell parameters
+both     : makes no assumptions and populates with default buy (1pp) and sell (2000000pp) parameters
 ```
 
 **/collectible collected log**
