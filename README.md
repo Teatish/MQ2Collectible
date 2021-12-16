@@ -30,22 +30,6 @@ ${Collectible[id|name].Collected(optional)} returns true/false
 -cn|collection
 ```
 
-## TLO Examples
-
-```
-${Collectible[Brasse's Brassiere].Collected}
-${Collectible[Clutching Foot]}
-${Collectible[81723]}
-```
-
-```
-MQ2Hud.ini
-
-[Elements]
-CollectionItemMOI = 7,30,0,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItem[=${EverQuest.LastMouseOver.Tooltip}]}]},Collected,Need]},""]},""]}
-CollectionItemMOB = 7,30,0,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItemBank[=${EverQuest.LastMouseOver.Tooltip}]}]},Collected,Need]},""]},""]}
-```
-
 ## /collectible Examples
 
 When using bazaar option, please note:
@@ -132,4 +116,19 @@ BuyPriceMin=1
 BuyPriceMax=1
 SellPriceMin=2000000
 SellPriceMax=2000000
+```
+## TLO Examples
+
+```
+/varset Coll ${Collectible[Brasse's Brassiere].Collected}
+/echo ${Collectible[Clutching Foot]}
+/echo ${Collectible[81723]}
+```
+
+```
+MQ2Hud.ini
+
+[Elements]
+CollectionItemMOI = 7,30,0,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItem[=${EverQuest.LastMouseOver.Tooltip}]}]},Collected,Need]},""]},""]}
+CollectionItemMOB = 7,30,0,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItemBank[=${EverQuest.LastMouseOver.Tooltip}]}]},Collected,Need]},""]},""]}
 ```
