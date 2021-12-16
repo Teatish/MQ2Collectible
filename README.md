@@ -85,7 +85,7 @@ Collection=
 ```
 Outputs Bazaar.mac compatible logfile with all the needed collectibles from the Terror of Luclin expansion:
 
-Collectible_need_exp_Terror_of_Luclin.ini
+Collectible_need_Terror_of_Luclin.ini
 
 [Collectible Name]
 ItemID=
@@ -101,7 +101,7 @@ BuyPriceMax=1
 ```
 Outputs Bazaar.mac compatible logfile with all the collected collectibles from the Dead Relics collection:
 
-Collectible_collected_coll_Dead_Relics.ini
+Collectible_collected_Dead_Relics.ini
 
 [Collectible Name]
 ItemID=
