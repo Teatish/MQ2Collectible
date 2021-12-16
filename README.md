@@ -30,13 +30,14 @@ ${Collectible[id|name].Collected(optional)} returns true/false
 -cn|collection
 ```
 
-## /collectible Examples
+## Command Examples
 
-When using the bazaar logfile option, please note these parameters:
+When using the bazaar logfile option, please note:
 
-- collected assumes you want to sell collectibles and provides default sell (2000000pp) parameters
-- need assumes you want to buy collectibles and provides default buy (1pp) parameters
-- both provides default buy (1pp) and sell (2000000pp) parameters
+- The logfile is provided for you to copy/paste to your Bazaar.ini. Any additional parameters in the [item] block are informational and have no bearing on Bazaar.mac
+- collected assumes you want to _sell_ collectibles and provides default sell (2000000pp) parameters
+- need assumes you want to _buy_ collectibles and provides default buy (1pp) parameters
+- both provides default _buy_ (1pp) and _sell_ (2000000pp) parameters
 
 **/collectible collected console collection "Flame-Licked Clothing"**
 
@@ -79,7 +80,7 @@ Expansion=
 Collection=
 ```
 
-**/collectible need bazaar expansion Terror of Luclin**
+**/collectible need bazaar expansion "Terror of Luclin"**
 
 ```
 Outputs Bazaar.mac compatible logfile with all the needed collectibles from the Terror of Luclin expansion:
@@ -95,7 +96,7 @@ BuyPriceMin=1
 BuyPriceMax=1
 ```
 
-**/collectible collected bazaar collection Dead Relics**
+**/collectible collected bazaar collection "Dead Relics"**
 
 ```
 Outputs Bazaar.mac compatible logfile with all the collected collectibles from the Dead Relics collection:
@@ -111,7 +112,7 @@ SellPriceMin=2000000
 SellPriceMax=2000000
 ```
 
-**/collectible both bazaar collection Headhunter (The Overthere)**
+**/collectible both bazaar collection "Headhunter (The Overthere)"**
 
 ```
 Outputs Bazaar.mac compatible logfile with all collectibles from the Headhunter (The Overthere) collection:
@@ -128,6 +129,7 @@ BuyPriceMax=1
 SellPriceMin=2000000
 SellPriceMax=2000000
 ```
+
 ## TLO Examples
 
 ```
