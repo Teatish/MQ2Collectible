@@ -10,101 +10,130 @@
 PreSetup("MQ2Collectible");
 PLUGIN_VERSION(0.1);
 
-/**
- * Avoid Globals if at all possible, since they persist throughout your program.
- * But if you must have them, here is the place to put them.
- */
-// bool ShowMQ2CollectibleWindow = true;
+void ShowHelp()
+{
+			WriteChatf("\ao[MQ2Collectible] \arUsage: \ag/collectible\ag collected|need|both|help log|bazaar expansion|collection name\aw");
+}
 
-/**
- * @fn InitializePlugin
- *
- * This is called once on plugin initialization and can be considered the startup
- * routine for the plugin.
- */
+void CollectibleCMD(SPAWNINFO* pChar, char* szLine)
+{
+	bool bCollected 		= false;
+	bool bNeed      		= false;
+	bool bLog				= false;
+	bool bBazaar 			= false;
+	bool bExpansion			= false;
+	bool bCollection		= false;
+
+	char* szName;
+
+	int  id 				= 0;
+
+	PCHARINFO pCharInfo = GetCharInfo();
+	PcProfile* pCharInfo2 = GetPcProfile();
+
+	// Begin Parameters
+
+	char szArg[MAX_STRING] = { 0 };
+	GetArg(szArg, szLine, 1);
+
+	if (strlen(szLine)==0 || !_stricmp(szArg, "help")) {
+		ShowHelp();
+		return;
+	}
+
+	if (!_stricmp(szArg, "collected")) {
+		bCollected = true;
+	} else if (!_stricmp(szArg, "need")) {
+		bNeed = true;
+	} else if (!_stricmp(szArg, "both")) {
+		bCollected = true;
+		bNeed = true;
+	} else {
+		ShowHelp();
+		return;
+	}
+
+	WriteChatf("Type: %s",szArg);
+
+	GetArg(szArg, szLine, 2);
+
+	if (!_stricmp(szArg, "log") || !_stricmp(szArg, "l")) {
+		bLog = true;
+		WriteChatf("log");
+	} else if (!_stricmp(szArg, "bazaar") || !_stricmp(szArg, "baz") || !_stricmp(szArg, "b")) {
+		bBazaar = true;
+		WriteChatf("bazaar");
+	} else {
+		ShowHelp();
+		return;
+	}
+
+	GetArg(szArg, szLine, 3);
+
+	if (strlen(szArg)) {
+		if (!_stricmp(szArg, "expansion") || !_stricmp(szArg, "exp") || !_stricmp(szArg, "e")) {
+			bExpansion = true;
+			WriteChatf("Expansion");
+		} else if (!_stricmp(szArg, "collections") || !_stricmp(szArg, "collection") || !_stricmp(szArg, "coll") || !_stricmp(szArg, "c")) {
+			bCollection = true;
+			WriteChatf("Collection");
+		} else {
+			ShowHelp();
+			return;
+		}
+	}
+
+	if (bExpansion || bCollection) {
+		szName = GetNextArg(szLine);
+
+		if (strlen(szName)==0) {
+			ShowHelp();
+			return;
+		}
+		if (IsNumber(szName)) {
+			id = atoi(szName);
+			if (id<1) {
+				ShowHelp();
+				return;
+			}
+		}
+		WriteChatf("Name: %s", szName);
+	}
+
+	// End Parameters
+
+}
+
+void CollectibleTLO(SPAWNINFO* pChar, char* szLine)
+{
+		
+	PCHARINFO pCharInfo = GetCharInfo();
+	PcProfile* pCharInfo2 = GetPcProfile();
+
+}
+
 PLUGIN_API void InitializePlugin()
 {
 	DebugSpewAlways("MQ2Collectible::Initializing version %f", MQ2Version);
 
-	// Examples:
-	// AddCommand("/mycommand", MyCommand);
-	// AddXMLFile("MQUI_MyXMLFile.xml");
-	// AddMQ2Data("mytlo", MyTLOData);
+	const std::string szAlias = GetPrivateProfileString("Aliases", "/collectible", "None", gPathMQini);
+	if (szAlias != "None") {
+		WriteChatf("\awMQ2Collectible: \arWarning! The alias /collectible already exists. Please delete it by entering \"\ay/alias /collectible delete\ar\" then try again.");
+		EzCommand("/timed 10 /plugin MQ2Collectible unload");
+	}
+
+	AddCommand("/collectible", CollectibleCMD);
+	//AddMQ2Data("collectible", CollectibleTLO);
 }
 
-/**
- * @fn ShutdownPlugin
- *
- * This is called once when the plugin has been asked to shutdown.  The plugin has
- * not actually shut down until this completes.
- */
 PLUGIN_API void ShutdownPlugin()
 {
 	DebugSpewAlways("MQ2Collectible::Shutting down");
 
-	// Examples:
-	// RemoveCommand("/mycommand");
-	// RemoveXMLFile("MQUI_MyXMLFile.xml");
-	// RemoveMQ2Data("mytlo");
+	RemoveCommand("/collectible");
+	RemoveMQ2Data("collectible");
 }
 
-/**
- * @fn OnCleanUI
- *
- * This is called once just before the shutdown of the UI system and each time the
- * game requests that the UI be cleaned.  Most commonly this happens when a
- * /loadskin command is issued, but it also occurs when reaching the character
- * select screen and when first entering the game.
- *
- * One purpose of this function is to allow you to destroy any custom windows that
- * you have created and cleanup any UI items that need to be removed.
- */
-PLUGIN_API void OnCleanUI()
-{
-	// DebugSpewAlways("MQ2Collectible::OnCleanUI()");
-}
-
-/**
- * @fn OnReloadUI
- *
- * This is called once just after the UI system is loaded. Most commonly this
- * happens when a /loadskin command is issued, but it also occurs when first
- * entering the game.
- *
- * One purpose of this function is to allow you to recreate any custom windows
- * that you have setup.
- */
-PLUGIN_API void OnReloadUI()
-{
-	// DebugSpewAlways("MQ2Collectible::OnReloadUI()");
-}
-
-/**
- * @fn OnDrawHUD
- *
- * This is called each time the Heads Up Display (HUD) is drawn.  The HUD is
- * responsible for the net status and packet loss bar.
- *
- * Note that this is not called at all if the HUD is not shown (default F11 to
- * toggle).
- *
- * Because the net status is updated frequently, it is recommended to have a
- * timer or counter at the start of this call to limit the amount of times the
- * code in this section is executed.
- */
-PLUGIN_API void OnDrawHUD()
-{
-/*
-	static std::chrono::steady_clock::time_point DrawHUDTimer = std::chrono::steady_clock::now();
-	// Run only after timer is up
-	if (std::chrono::steady_clock::now() > DrawHUDTimer)
-	{
-		// Wait half a second before running again
-		DrawHUDTimer = std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
-		DebugSpewAlways("MQ2Collectible::OnDrawHUD()");
-	}
-*/
-}
 
 /**
  * @fn SetGameState
@@ -149,240 +178,4 @@ PLUGIN_API void OnPulse()
 		DebugSpewAlways("MQ2Collectible::OnPulse()");
 	}
 */
-}
-
-/**
- * @fn OnWriteChatColor
- *
- * This is called each time WriteChatColor is called (whether by MQ2Main or by any
- * plugin).  This can be considered the "when outputting text from MQ" callback.
- *
- * This ignores filters on display, so if they are needed either implement them in
- * this section or see @ref OnIncomingChat where filters are already handled.
- *
- * If CEverQuest::dsp_chat is not called, and events are required, they'll need to
- * be implemented here as well.  Otherwise, see @ref OnIncomingChat where that is
- * already handled.
- *
- * For a list of Color values, see the constants for USERCOLOR_.  The default is
- * USERCOLOR_DEFAULT.
- *
- * @param Line const char* - The line that was passed to WriteChatColor
- * @param Color int - The type of chat text this is to be sent as
- * @param Filter int - (default 0)
- */
-PLUGIN_API void OnWriteChatColor(const char* Line, int Color, int Filter)
-{
-	// DebugSpewAlways("MQ2Collectible::OnWriteChatColor(%s, %d, %d)", Line, Color, Filter);
-}
-
-/**
- * @fn OnIncomingChat
- *
- * This is called each time a line of chat is shown.  It occurs after MQ filters
- * and chat events have been handled.  If you need to know when MQ2 has sent chat,
- * consider using @ref OnWriteChatColor instead.
- *
- * For a list of Color values, see the constants for USERCOLOR_. The default is
- * USERCOLOR_DEFAULT.
- *
- * @param Line const char* - The line of text that was shown
- * @param Color int - The type of chat text this was sent as
- *
- * @return bool - Whether to filter this chat from display
- */
-PLUGIN_API bool OnIncomingChat(const char* Line, DWORD Color)
-{
-	// DebugSpewAlways("MQ2Collectible::OnIncomingChat(%s, %d)", Line, Color);
-	return false;
-}
-
-/**
- * @fn OnAddSpawn
- *
- * This is called each time a spawn is added to a zone (ie, something spawns). It is
- * also called for each existing spawn when a plugin first initializes.
- *
- * When zoning, this is called for all spawns in the zone after @ref OnEndZone is
- * called and before @ref OnZoned is called.
- *
- * @param pNewSpawn PSPAWNINFO - The spawn that was added
- */
-PLUGIN_API void OnAddSpawn(PSPAWNINFO pNewSpawn)
-{
-	// DebugSpewAlways("MQ2Collectible::OnAddSpawn(%s)", pNewSpawn->Name);
-}
-
-/**
- * @fn OnRemoveSpawn
- *
- * This is called each time a spawn is removed from a zone (ie, something despawns
- * or is killed).  It is NOT called when a plugin shuts down.
- *
- * When zoning, this is called for all spawns in the zone after @ref OnBeginZone is
- * called.
- *
- * @param pSpawn PSPAWNINFO - The spawn that was removed
- */
-PLUGIN_API void OnRemoveSpawn(PSPAWNINFO pSpawn)
-{
-	// DebugSpewAlways("MQ2Collectible::OnRemoveSpawn(%s)", pSpawn->Name);
-}
-
-/**
- * @fn OnAddGroundItem
- *
- * This is called each time a ground item is added to a zone (ie, something spawns).
- * It is also called for each existing ground item when a plugin first initializes.
- *
- * When zoning, this is called for all ground items in the zone after @ref OnEndZone
- * is called and before @ref OnZoned is called.
- *
- * @param pNewGroundItem PGROUNDITEM - The ground item that was added
- */
-PLUGIN_API void OnAddGroundItem(PGROUNDITEM pNewGroundItem)
-{
-	// DebugSpewAlways("MQ2Collectible::OnAddGroundItem(%d)", pNewGroundItem->DropID);
-}
-
-/**
- * @fn OnRemoveGroundItem
- *
- * This is called each time a ground item is removed from a zone (ie, something
- * despawns or is picked up).  It is NOT called when a plugin shuts down.
- *
- * When zoning, this is called for all ground items in the zone after
- * @ref OnBeginZone is called.
- *
- * @param pGroundItem PGROUNDITEM - The ground item that was removed
- */
-PLUGIN_API void OnRemoveGroundItem(PGROUNDITEM pGroundItem)
-{
-	// DebugSpewAlways("MQ2Collectible::OnRemoveGroundItem(%d)", pGroundItem->DropID);
-}
-
-/**
- * @fn OnBeginZone
- *
- * This is called just after entering a zone line and as the loading screen appears.
- */
-PLUGIN_API void OnBeginZone()
-{
-	// DebugSpewAlways("MQ2Collectible::OnBeginZone()");
-}
-
-/**
- * @fn OnEndZone
- *
- * This is called just after the loading screen, but prior to the zone being fully
- * loaded.
- *
- * This should occur before @ref OnAddSpawn and @ref OnAddGroundItem are called. It
- * always occurs before @ref OnZoned is called.
- */
-PLUGIN_API void OnEndZone()
-{
-	// DebugSpewAlways("MQ2Collectible::OnEndZone()");
-}
-
-/**
- * @fn OnZoned
- *
- * This is called after entering a new zone and the zone is considered "loaded."
- *
- * It occurs after @ref OnEndZone @ref OnAddSpawn and @ref OnAddGroundItem have
- * been called.
- */
-PLUGIN_API void OnZoned()
-{
-	// DebugSpewAlways("MQ2Collectible::OnZoned()");
-}
-
-/**
- * @fn OnUpdateImGui
- *
- * This is called each time that the ImGui Overlay is rendered. Use this to render
- * and update plugin specific widgets.
- *
- * Because this happens extremely frequently, it is recommended to move any actual
- * work to a separate call and use this only for updating the display.
- */
-PLUGIN_API void OnUpdateImGui()
-{
-/*
-	if (GetGameState() == GAMESTATE_INGAME)
-	{
-		if (ShowMQ2CollectibleWindow)
-		{
-			if (ImGui::Begin("MQ2Collectible", &ShowMQ2CollectibleWindow, ImGuiWindowFlags_MenuBar))
-			{
-				if (ImGui::BeginMenuBar())
-				{
-					ImGui::Text("MQ2Collectible is loaded!");
-					ImGui::EndMenuBar();
-				}
-			}
-			ImGui::End();
-		}
-	}
-*/
-}
-
-/**
- * @fn OnMacroStart
- *
- * This is called each time a macro starts (ex: /mac somemacro.mac), prior to
- * launching the macro.
- *
- * @param Name const char* - The name of the macro that was launched
- */
-PLUGIN_API void OnMacroStart(const char* Name)
-{
-	// DebugSpewAlways("MQ2Collectible::OnMacroStart(%s)", Name);
-}
-
-/**
- * @fn OnMacroStop
- *
- * This is called each time a macro stops (ex: /endmac), after the macro has ended.
- *
- * @param Name const char* - The name of the macro that was stopped.
- */
-PLUGIN_API void OnMacroStop(const char* Name)
-{
-	// DebugSpewAlways("MQ2Collectible::OnMacroStop(%s)", Name);
-}
-
-/**
- * @fn OnLoadPlugin
- *
- * This is called each time a plugin is loaded (ex: /plugin someplugin), after the
- * plugin has been loaded and any associated -AutoExec.cfg file has been launched.
- * This means it will be executed after the plugin's @ref InitializePlugin callback.
- *
- * This is also called when THIS plugin is loaded, but initialization tasks should
- * still be done in @ref InitializePlugin.
- *
- * @param Name const char* - The name of the plugin that was loaded
- */
-PLUGIN_API void OnLoadPlugin(const char* Name)
-{
-	// DebugSpewAlways("MQ2Collectible::OnLoadPlugin(%s)", Name);
-}
-
-/**
- * @fn OnUnloadPlugin
- *
- * This is called each time a plugin is unloaded (ex: /plugin someplugin unload),
- * just prior to the plugin unloading.  This means it will be executed prior to that
- * plugin's @ref ShutdownPlugin callback.
- *
- * This is also called when THIS plugin is unloaded, but shutdown tasks should still
- * be done in @ref ShutdownPlugin.
- *
- * @param Name const char* - The name of the plugin that is to be unloaded
- */
-PLUGIN_API void OnUnloadPlugin(const char* Name)
-{
-	// DebugSpewAlways("MQ2Collectible::OnUnloadPlugin(%s)", Name);
 }
