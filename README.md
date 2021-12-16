@@ -129,9 +129,8 @@ SellPriceMax=2000000
 ## TLO Examples
 
 ```
-/varset Coll ${Collectible[Brasse's Brassiere].Collected}
-/echo ${Collectible[Clutching Foot]}
-/echo ${Collectible[81723]}
+/varset Coll ${Collectible["Brasse's Brassiere"].Collected}
+/echo ${Collectible["Clutching Foot"]}
 ```
 
 ```
