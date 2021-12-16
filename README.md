@@ -6,9 +6,9 @@
 ## Usage
 
 ```
-${Collectible[id|name].Collected(optional)} returns true/false
-
 /collectible collected|need|both|help log|bazaar|console (optional: expansion|collection "name")
+
+${Collectible[id|name].Collected(optional)} returns true/false
 ```
 
 - Parameters must be ordered as shown.
@@ -32,12 +32,23 @@ ${Collectible[id|name].Collected(optional)} returns true/false
 
 ## /collectible Examples
 
-When using bazaar option, please note:
+When using the bazaar logfile option, please note these parameters:
+
+- collected assumes you want to sell collectibles and provides default sell (2000000pp) parameters
+- need assumes you want to buy collectibles and provides default buy (1pp) parameters
+- both provides default buy (1pp) and sell (2000000pp) parameters
+
+**/collectible collected console collection "Flame-Licked Clothing"**
 
 ```
-collected: assumes you want to sell collectibles
-need     : assumes you want to buy collectibles
-both     : makes no assumptions and populates with default buy (1pp) and sell (2000000pp) parameters
+Outputs to console:
+
+Collection: Flame-Licked Clothing, Claws of Veeshan
+Flame-Licked Trousers [collected]
+...
+...
+...
+Flame-Licked Belt [need]
 ```
 
 **/collectible collected log**
