@@ -56,6 +56,7 @@ need     : assumes you want to buy collectibles
 both     : makes no assumptions and populates with buy and sell parameters
 ```
 
+```
 /collectible collected log
 
 Outputs logfile of collectibles you have collected from all achievements across all expansions:
@@ -104,7 +105,6 @@ Collected=0
 BuyPriceMin=1
 BuyPriceMax=1
 ```
-
 
 ```
 /collectible both bazaar collection Headhunter (The Overthere)
