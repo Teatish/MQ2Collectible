@@ -3,9 +3,7 @@
 - Command /collectible provides Collectible status and log output.
 - TLO ${Collectible} provides Collectible status
 
-```
 This document serves as a guide for implementing functionality rather than a post facto description. If new functionality or use cases arise, describe them here before making substantial code changes, if they are necessary. The guiding principle is to update the document prior to making substantial code changes so that the requirements are implicitly understood and usage is adequately described.
-```
 
 ## Usage
 
