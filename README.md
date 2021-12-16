@@ -1,7 +1,7 @@
 # MQ2Collectible
 
-- New TLO ${Collectible} provides Collectible status
-- New command /collectible provides Collectible status and log output.
+- Command /collectible provides Collectible status and log output.
+- TLO ${Collectible} provides Collectible status
 
 ## Usage
 
@@ -11,22 +11,22 @@ ${Collectible[id|name].Collected(optional)} returns true/false
 /collectible collected|need|both|help log|bazaar|console (optional: expansion|collection "name")
 ```
 
--- Parameters must be ordered as shown.
--- The "name" must be enclosed with quotations.
--- Output to console requires the collection "name".
--- Output to console not provided for expansion due to potential overflow and clogging in general.
+- Parameters must be ordered as shown.
+- The "name" must be enclosed with quotations.
+- Output to console requires the collection "name".
+- Output to console not provided for expansion due to potential overflow and clogging in general.
 
-### Convenience Parameters
+### Alternate Parameters
 
 ```
 -cd|collected
--n|need
--b|both
--h|h|help|(no parameters)
--l|log
+ -n|need
+ -b|both
+ -h|h|help|(no parameters)
+ -l|log
 -bz|bazaar
 -cs|console
--e|expansion
+ -e|expansion
 -cn|collection
 ```
 
