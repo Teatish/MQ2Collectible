@@ -46,7 +46,7 @@ MQ2Hud.ini
 CollectionItemMO = 7,30,0,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItem[=${EverQuest.LastMouseOver.Tooltip}]}]},Collected,Need]},""]},""]}
 ```
 
-### /collectible Examples
+## /collectible Examples
 
 When using bazaar option, please note:
 
@@ -56,10 +56,10 @@ need     : assumes you want to buy collectibles
 both     : makes no assumptions and populates with buy and sell parameters
 ```
 
-```
-/collectible collected log
+**/collectible collected log**
 
-Outputs logfile of collectibles you have collected from all achievements across all expansions:
+```
+Outputs logfile of collectibles you have collected from all collections across all expansions:
 Collectible_Collected.ini
 
 [Collectible Name]
@@ -69,10 +69,10 @@ Expansion=
 Collection=
 ```
 
-```
-/collectible need log
+**/collectible need log**
 
-Outputs logfile of collectibles you need from all achievements across all expansions:
+```
+Outputs logfile of collectibles you need from all collections across all expansions:
 Collectible_Need.ini
 
 [Collectible Name]
@@ -82,37 +82,49 @@ Expansion=
 Collection=
 ```
 
-```
-/collectible need bazaar expansion Terror of Luclin
+**/collectible need bazaar expansion Terror of Luclin**
 
+```
 Outputs Bazaar.mac compatible logfile with all the needed collectibles from the Terror of Luclin expansion:
 Collectible_Need_Terror_of_Luclin.ini
 
 [Collectible Name]
+ItemID=
 Collected=0
+Expansion=Terror of Luclin
+Collection=
 BuyPriceMin=1
 BuyPriceMax=1
 ```
 
-```
-/collectible collected bazaar collection Dead Relics
+**/collectible collected bazaar collection Dead Relics**
 
-Outputs Bazaar.mac compatible logfile with all the collected collectibles from the Dead Relics achievement:
-Collectible_Need_Dead_Relics.ini
+```
+Outputs Bazaar.mac compatible logfile with all the collected collectibles from the Dead Relics collection:
+
+Collectible_collected_Dead_Relics.ini
 
 [Collectible Name]
-Collected=0
-BuyPriceMin=1
-BuyPriceMax=1
+ItemID=
+Collected=1
+Expansion=Call of the Forsaken
+Collection=Dead Relics
+SellPriceMin=2000000
+SellPriceMax=2000000
 ```
 
-```
-/collectible both bazaar collection Headhunter (The Overthere)
+**/collectible both bazaar collection Headhunter (The Overthere)**
 
-Outputs logfile Collectible_Both_Headhunter_(The_Overthere).ini
+```
+Outputs Bazaar.mac compatible logfile with all collectibles from the Headhunter (The Overthere) collection:
+
+Collectible_both_Headhunter_(The_Overthere).ini
 
 [Collectible Name]
-Collected=0|1
+id=
+Collected=
+Expansion=Ring of Scale
+Collection=Headhunter (The Overthere)
 BuyPriceMin=1
 BuyPriceMax=1
 SellPriceMin=2000000
