@@ -29,11 +29,6 @@ collection|c|coll
 ## TLO Examples
 
 ```
-${Collectible[...]} returns true/false
-${Collectible[...].Collected} returns true/false
-```
-
-```
 ${Collectible[Brasse's Brassiere].Collected}
 ${Collectible[Clutching Foot]}
 ${Collectible[81723]}
@@ -43,7 +38,8 @@ ${Collectible[81723]}
 MQ2Hud.ini
 
 [Elements]
-CollectionItemMO = 7,30,0,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItem[=${EverQuest.LastMouseOver.Tooltip}]}]},Collected,Need]},""]},""]}
+CollectionItemMOI = 7,30,0,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItem[=${EverQuest.LastMouseOver.Tooltip}]}]},Collected,Need]},""]},""]}
+CollectionItemMOB = 7,30,0,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItemBank[=${EverQuest.LastMouseOver.Tooltip}]}]},Collected,Need]},""]},""]}
 ```
 
 ## /collectible Examples
@@ -60,7 +56,8 @@ both     : makes no assumptions and populates with buy and sell parameters
 
 ```
 Outputs logfile of collectibles you have collected from all collections across all expansions:
-Collectible_Collected.ini
+
+Collectible_collected.ini
 
 [Collectible Name]
 ItemID=
@@ -73,7 +70,8 @@ Collection=
 
 ```
 Outputs logfile of collectibles you need from all collections across all expansions:
-Collectible_Need.ini
+
+Collectible_need.ini
 
 [Collectible Name]
 ItemID=
@@ -86,7 +84,8 @@ Collection=
 
 ```
 Outputs Bazaar.mac compatible logfile with all the needed collectibles from the Terror of Luclin expansion:
-Collectible_Need_Terror_of_Luclin.ini
+
+Collectible_need_exp_Terror_of_Luclin.ini
 
 [Collectible Name]
 ItemID=
@@ -102,7 +101,7 @@ BuyPriceMax=1
 ```
 Outputs Bazaar.mac compatible logfile with all the collected collectibles from the Dead Relics collection:
 
-Collectible_collected_Dead_Relics.ini
+Collectible_collected_coll_Dead_Relics.ini
 
 [Collectible Name]
 ItemID=
