@@ -18,15 +18,17 @@
 PreSetup("MQ2Collectible");
 PLUGIN_VERSION(0.1);
 
-void LookupCollectionsByExpansion(char* szExpansionName);
-void LookupCollection(char* szCollectionName);
-void LookupAllCollections();
+void LookupCollection(char* szCollectionName, bool bCollected, bool bNeed, bool bLog, bool bBazaar, bool bConsole);
+void LookupCollectionsByExpansion(char* szExpansionName, bool bCollected, bool bNeed, bool bLog, bool bBazaar, bool bConsole);
 
 void ConsoleOutput();
 // void LookupCollectible(std::string szCollectibleName);
 
 void CollectibleCMD(SPAWNINFO* pChar, char* szLine);
 void ShowCMDHelp();
+
+const char* COLLECTED = "[COLLECTED]";
+const char* NEED      = "[NEED]";
 
 // ----------------------------------------------
 // Command section
@@ -112,162 +114,108 @@ void CollectibleCMD(SPAWNINFO* pChar, char* szLine)
 
 	// Look up by Collection or Expansion if specified, or all.
 	if (bCollection) {
-		LookupCollection(szName);
+		LookupCollection(szName, bCollected, bNeed, bLog, bBazaar, bConsole);
 	} else if (bExpansion) {
-		LookupCollectionsByExpansion(szName);
-	} else {
-		LookupAllCollections();
+		LookupCollectionsByExpansion(szName, bCollected, bNeed, bLog, bBazaar, bConsole);
 	}
 
 	// PCHARINFO pCharInfo = GetCharInfo();
 	// PcProfile* pCharInfo2 = GetPcProfile();
 }
 
-void LookupCollectionsByExpansion(char* szExpansionName)
+void LookupCollection(char* szCollectionName, bool bCollected, bool bNeed, bool bLog, bool bBazaar, bool bConsole)
+{
+
+	// Find category "Collections", then search through the subcategories
+	// until we find the needed Collection, then iterate through the
+	// collectibles.
+
+	AchievementManager& AchMgr = AchievementManager::Instance();
+
+	int   AchID        = 0;
+	int   AchParentID  = 0;
+	int   AchIdx       = 0;
+	int   AchCt        = 0;
+	int   CompTypeCt   = 0;
+	int   x            = 0;
+	int   y            = 0;
+
+	bool  bFound       = false;
+
+	for (const AchievementCategory& AchCat : AchMgr.categories) {
+
+		if (!string_equals(AchCat.name, "Collections")) continue;
+
+		// Secrets of Faydwer says Collections, but there aren't any. As of Terror of Luclin, Events and 10 expansions actually have real collections.
+		AchCt = AchCat.GetAchievementCount();
+		if (!AchCt) continue;
+
+		// Obtain the Expansion name.
+		AchParentID = AchCat.parentId;
+		const AchievementCategory& AchParent = *AchMgr.GetAchievementCategoryById(AchParentID);
+
+		//WriteChatf("AchCat: %s, %s, AchCt: %d", AchCat.name.c_str(), AchParent.name.c_str(), AchCt);
+
+		for (x = 0; x < AchCt; ++x) {
+
+			AchID       = AchCat.GetAchievementId(x);
+			AchIdx      = AchMgr.GetAchievementIndexById(AchID);
+			
+			const SingleAchievementAndComponentsInfo* AchCompInfo = AchMgr.GetAchievementClientInfoByIndex(AchIdx);
+
+			// Anything nested under the achievement?
+			if (!AchCompInfo) continue;
+
+			const Achievement* Ach = AchMgr.GetAchievementByIndex(AchIdx);
+
+			// Is it the right collection?
+			if (!!_stricmp(Ach->name.c_str(), szCollectionName)) continue;
+
+			bFound = true;
+
+			CompTypeCt = Ach->componentsByType[AchievementComponentCompletion].GetCount();
+
+			if (bConsole) {
+				WriteChatf("\nMQ2Collectible: %s, %s", Ach->name.c_str(), AchParent.description.c_str());
+				WriteChatf("-------------------------------------------------------------------------------");
+			}
+
+			// List the collectibles
+			for (int y = 0; y < CompTypeCt; y++) {
+
+				const AchievementComponent& CompTypeCompletion = Ach->componentsByType[AchievementComponentCompletion][y];
+
+				// Need first, since I am assuming more will NEED collectibles, or else they wouldn't use this plugin.
+				if (!AchCompInfo->IsComponentComplete(AchievementComponentCompletion, y) && bNeed) {
+					if (bConsole) {
+						WriteChatf("%s %s",CompTypeCompletion.description.c_str(),NEED);
+					}
+					continue;
+				}
+
+				if (AchCompInfo->IsComponentComplete(AchievementComponentCompletion, y) && bCollected) {
+					if (bConsole) {
+						WriteChatf("%s %s",CompTypeCompletion.description.c_str(),COLLECTED);
+					}
+					continue;
+				}
+			}
+			// We are done.
+			break;
+		}
+	}
+	if (!bFound) {
+		WriteChatf("\nMQ2Collectible: Could not find Collection %s", szCollectionName);
+	}
+}
+
+void LookupCollectionsByExpansion(char* szExpansionName, bool bCollected, bool bNeed, bool bLog, bool bBazaar, bool bConsole)
 {
 
 	AchievementManager& achievemanager = AchievementManager::Instance();
 
 }
 
-void LookupCollection1(char* szCollectionName)
-{
-
-	// Find category "Collections", then search through the subcategories
-	// until we find the needed Collection, then iterate through the
-	// collectibles.
-
-	AchievementManager& AchMgr = AchievementManager::Instance();
-
-	int   AchID        = 0;
-	int   AchParentID  = 0;
-	int   AchIdx       = 0;
-	int   AchCt        = 0;
-	int   CompTypeCt   = 0;
-	int   x            = 0;
-	int   y            = 0;
-
-	for (const AchievementCategory& AchCat : AchMgr.categories) {
-
-		if (!string_equals(AchCat.name, "Collections")) continue;
-
-		// How many achievements within this Collection?
-		AchCt = AchCat.GetAchievementCount();
-		// This provides us the means to obtain the Expansion name.
-		AchParentID = AchCat.parentId;
-
-		// We only want the collections that have collectibles as objectives. Should I start at 0 or 1?
-		for (x = 0; x < AchCt; ++x) {
-
-			AchID       = AchCat.GetAchievementId(x);
-			AchIdx      = AchMgr.GetAchievementIndexById(AchID);
-			
-			const SingleAchievementAndComponentsInfo* AchCompInfo = AchMgr.GetAchievementClientInfoByIndex(AchIdx);
-
-			// Anything nested under the achievement?
-			if (!AchCompInfo) continue;
-
-			const Achievement* Ach = AchMgr.GetAchievementByIndex(AchIdx);
-			CompTypeCt = Ach->componentsByType[AchievementComponentCompletion].GetCount();
-
-			// Find a matching Collection
-			for (int y = 0; y < CompTypeCt; y++) {
-
-				const AchievementComponent& CompTypeComplete = Ach->componentsByType[AchievementComponentCompletion][y];
-				WriteChatf("y = %d:%s",y,CompTypeComplete.description.c_str());
-
-				if (!!_stricmp(CompTypeComplete.description.c_str(), szCollectionName)) continue;
-
-				// We found the Collection
-				const AchievementCategory& AchParent = *AchMgr.GetAchievementCategoryById(AchParentID);
-				WriteChatf("\nMQ2Collectible: Collection - %s, %s", CompTypeComplete.description.c_str(), AchParent.description.c_str());
-				WriteChatf("--------------------------------------------------------------------------------");
-
-				return;
-
-				//if (AchCompInfo->IsComponentComplete(AchievementComponentCompletion, y)) {
-				//	WriteChatf("%s, %s", CompTypeComplete.description.c_str(), AchParent.description.c_str());
-				//} else {
-				//	WriteChatf("%s [NEED]", CompTypeComplete.description.c_str());
-				//}
-			}
-		}
-	}
-	WriteChatf("\nMQ2Collectible: Could not find Collection %s", szCollectionName);
-}
-
-void LookupCollection(char* szCollectionName)
-{
-
-	// Find category "Collections", then search through the subcategories
-	// until we find the needed Collection, then iterate through the
-	// collectibles.
-
-	AchievementManager& AchMgr = AchievementManager::Instance();
-
-	int   AchID        = 0;
-	int   AchParentID  = 0;
-	int   AchIdx       = 0;
-	int   AchCt        = 0;
-	int   CompTypeCt   = 0;
-	int   x            = 0;
-	int   y            = 0;
-
-	for (const AchievementCategory& AchCat : AchMgr.categories) {
-
-		if (!string_equals(AchCat.name, "Collections")) continue;
-
-		// How many achievements within this Collection?
-		AchCt = AchCat.GetAchievementCount();
-		// This provides us the means to obtain the Expansion name.
-		AchParentID = AchCat.parentId;
-
-		// We only want the collections that have collectibles as objectives. Should I start at 0 or 1?
-		for (x = 0; x < AchCt; ++x) {
-
-			AchID       = AchCat.GetAchievementId(x);
-			AchIdx      = AchMgr.GetAchievementIndexById(AchID);
-			
-			const SingleAchievementAndComponentsInfo* AchCompInfo = AchMgr.GetAchievementClientInfoByIndex(AchIdx);
-
-			// Anything nested under the achievement?
-			if (!AchCompInfo) continue;
-
-			const Achievement* Ach = AchMgr.GetAchievementByIndex(AchIdx);
-			CompTypeCt = Ach->componentsByType[AchievementComponentCompletion].GetCount();
-
-			// Find a matching Collection
-			for (int y = 0; y < CompTypeCt; y++) {
-
-				const AchievementComponent& CompTypeComplete = Ach->componentsByType[AchievementComponentCompletion][y];
-				const AchievementCategory& AchParent = *AchMgr.GetAchievementCategoryById(AchParentID);
-
-				WriteChatf("x,y = %d,%d : %s,%s",x,y,CompTypeComplete.description.c_str(),AchParent.description.c_str());
-
-				if (!!_stricmp(CompTypeComplete.description.c_str(), szCollectionName)) continue;
-
-				// We found the Collection
-				//const AchievementCategory& AchParent = *AchMgr.GetAchievementCategoryById(AchParentID);
-				WriteChatf("\nMQ2Collectible: Collection - %s, %s", CompTypeComplete.description.c_str(), AchParent.description.c_str());
-				WriteChatf("--------------------------------------------------------------------------------");
-
-				return;
-
-				//if (AchCompInfo->IsComponentComplete(AchievementComponentCompletion, y)) {
-				//	WriteChatf("%s, %s", CompTypeComplete.description.c_str(), AchParent.description.c_str());
-				//} else {
-				//	WriteChatf("%s [NEED]", CompTypeComplete.description.c_str());
-				//}
-			}
-		}
-		return;
-	}
-	WriteChatf("\nMQ2Collectible: Could not find Collection %s", szCollectionName);
-}
-
-void LookupAllCollections() {
-
-}
 void ShowCMDHelp()
 {
 			WriteChatf("\awMQ2Collectible \ayUsage: \ag/collectible collected|need|both|help log|bazaar|console (optional unless console then specify collection: expansion|collection \"name\")");

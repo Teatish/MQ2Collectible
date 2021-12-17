@@ -1,6 +1,6 @@
 # MQ2Collectible
 
-- Command /collectible provides Collectible status and log output.
+- Command /collectible provides log output summaries of the status of Collectibles within Collections and Expansions.
 - TLO ${Collectible} provides Collectible status
 
 This document serves as a guide for implementing functionality rather than a post facto description. If new functionality or use cases arise, describe them here before making substantial code changes, if they are necessary. The guiding principle is to update the document prior to making substantial code changes so that the requirements are implicitly understood and usage is adequately described.
@@ -46,13 +46,24 @@ When using the bazaar logfile option, please note:
 ```
 Outputs to console:
 
-Flame-Licked Clothing, Claws of Veeshan
----------------------------------------
-Flame-Licked Trousers [collected]
+MQ2Collectible: Flame-Licked Clothing, Claws of Veeshan
+-------------------------------------------------------------------------------
+Flame-Licked Trousers [COLLECTED]
 ...
+Flame-Licked Shirt [COLLECTED]
+```
+
+**/collectible both console collection "Flame-Licked Clothing"**
+
+```
+Outputs to console:
+
+MQ2Collectible: Flame-Licked Clothing, Claws of Veeshan
+-------------------------------------------------------------------------------
+Flame-Licked Trousers [COLLECTED]
 ...
-...
-Flame-Licked Belt [need]
+Flame-Licked Shirt [COLLECTED]
+Flame-Licked Belt [NEED]
 ```
 
 **/collectible collected log**
