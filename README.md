@@ -10,7 +10,7 @@ This document serves as a guide for implementing functionality rather than a pos
 ```
 /collectible collected|need|both|help log|bazaar|console (optional: expansion|collection "name")
 
-${Collectible["name"].Collected(optional)} returns true/false
+${Collectible["name"]} returns true/false
 ```
 
 - Parameters must be ordered as shown.
@@ -131,7 +131,7 @@ SellPriceMax=2000000
 ## TLO Examples
 
 ```
-/varset Coll ${Collectible["Brasse's Brassiere"].Collected}
+/varset Coll ${Collectible["Brasse's Brassiere"]}
 /echo ${Collectible["Clutching Foot"]}
 ```
 
