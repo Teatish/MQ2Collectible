@@ -41,22 +41,22 @@ When using the bazaar logfile option, please note:
 - **need** assumes you want to _buy_ collectibles and provides default buy (1pp) parameters
 - **both** provides default _buy_ (1pp) and _sell_ (2000000pp) parameters
 
-**/collectible collected console collection "Flame-Licked Clothing"**
+**/collectible need console collection "Flame-Licked Clothing"**
+**/collectible need log collection "Flame-Licked Clothing"**
 
 ```
-Outputs to console:
+Outputs to console, or to logfile: Collectible_server_charname_need_log.ini
 
 MQ2Collectible: Flame-Licked Clothing, Claws of Veeshan
 -------------------------------------------------------------------------------
-Flame-Licked Trousers [COLLECTED]
-...
-Flame-Licked Shirt [COLLECTED]
+Flame-Licked Belt [NEED]
 ```
 
 **/collectible both console collection "Flame-Licked Clothing"**
+**/collectible both log collection "Flame-Licked Clothing"**
 
 ```
-Outputs to console:
+Outputs to console, or to logfile: Collectible_server_charname_both_log.ini
 
 MQ2Collectible: Flame-Licked Clothing, Claws of Veeshan
 -------------------------------------------------------------------------------
@@ -66,45 +66,32 @@ Flame-Licked Shirt [COLLECTED]
 Flame-Licked Belt [NEED]
 ```
 
+**/collectible collected console**
 **/collectible collected log**
-
-```
-Outputs logfile of collectibles you have collected from all collections across all expansions:
-
-Collectible_server_charname_coll_log.ini
-
-[Collectible Name]
-Collected=1
-Collection=
-Expansion=
-```
-
 **/collectible need log**
+etc.
 
-```
-Outputs logfile of collectibles you need from all collections across all expansions:
-
-Collectible_server_charname_need_log.ini
-
-[Collectible Name]
-Collected=0
-Collection=
-Expansion=
-```
+Outputs Collectibles from _all_ collections across _all_ expansions.
 
 **/collectible need bazaar expansion "Terror of Luclin"**
 
 ```
 Outputs Bazaar.mac compatible logfile with all the needed collectibles from the Terror of Luclin expansion:
 
-Collectible_server_charname_need_baz_Terror_of_Luclin.ini
+Collectible_server_charname_need_baz.ini
 
 [Collectible Name]
 Collected=0
-Collection=
-Expansion=Terror of Luclin
+Collection=collection name, Expansion=Terror of Luclin
 BuyPriceMin=1
 BuyPriceMax=1
+[Collectible Name]
+Collected=0
+Collection=collection name, Expansion=Terror of Luclin
+BuyPriceMin=1
+BuyPriceMax=1
+
+etc.
 ```
 
 **/collectible collected bazaar collection "Dead Relics"**
@@ -112,14 +99,15 @@ BuyPriceMax=1
 ```
 Outputs Bazaar.mac compatible logfile with all the collected collectibles from the Dead Relics collection:
 
-Collectible_server_charname_collected_baz_Dead_Relics.ini
+Collectible_server_charname_coll_baz.ini
 
 [Collectible Name]
 Collected=1
-Collection=Dead Relics
-Expansion=Call of the Forsaken
+Collection=Dead Relics, Call of the Forsaken
 SellPriceMin=2000000
 SellPriceMax=2000000
+
+etc.
 ```
 
 **/collectible both bazaar collection "Headhunter (The Overthere)"**
@@ -127,12 +115,11 @@ SellPriceMax=2000000
 ```
 Outputs Bazaar.mac compatible logfile with all collectibles from the Headhunter (The Overthere) collection:
 
-Collectible_server_charname_both_baz_Headhunter_(The_Overthere).ini
+Collectible_server_charname_both_baz.ini
 
 [Collectible Name]
-Collected=
-Collection=Headhunter (The Overthere)
-Expansion=Ring of Scale
+Collected=0|1
+Collection=Headhunter (The Overthere), Ring of Scale
 BuyPriceMin=1
 BuyPriceMax=1
 SellPriceMin=2000000
