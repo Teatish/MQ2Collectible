@@ -18,8 +18,6 @@
 PreSetup("MQ2Collectible");
 PLUGIN_VERSION(0.1);
 
-// This plugin is dependent on MQ2Log, for now.
-
 void CollectibleCMD(SPAWNINFO* pChar, char* szLine);
 void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bool bNeed, bool bLog, bool bBazaar, bool bConsole, bool bCollection, bool bExpansion);
 void ShowCMDHelp();
@@ -30,11 +28,12 @@ bool LogOutput(char* szLogFileName, char* szLogThis);
 const char* COLLECTED = "[COLLECTED]";
 const char* NEED      = "[NEED]";
 
-// Bazaar.mac defaults
-const char* SELLMIN   = "2000000";
-const char* SELLMAX   = "2000000";
-const char* BUYMIN    = "1";
-const char* BUYMAX    = "1";
+// Bazaar.mac defaults - probly put this in a ini or read from their ini at some point.
+const int SELLMIN   = 2000000;
+const int SELLMAX   = 2000000;
+const int BUYMIN    = 1;
+const int BUYMAX    = 1;
+const int MINBUYCT  = 1;
 
 // ----------------------------------------------
 // Command section
@@ -42,78 +41,106 @@ const char* BUYMAX    = "1";
 
 void CollectibleCMD(SPAWNINFO* pChar, char* szLine)
 {
-
-	bool bCollected 		= false;
-	bool bNeed      		= false;
-	bool bLog				= false;
-	bool bBazaar 			= false;
-	bool bConsole 			= false;
-	bool bExpansion			= false;
-	bool bCollection		= false;
-	char* szCharName 		= pChar->Name; 
-	char szCollExpName[256] = { 0 };
 	char szArg[16] 			= { 0 };
 
 	// Parse Parameters
 	GetArg(szArg, szLine, 1);
 
-	if (strlen(szLine)==0 || !_stricmp(szArg, "help") || !_stricmp(szArg, "-h")) {
+	if (strlen(szLine)==0 || !_stricmp(szArg, "help") || !_stricmp(szArg, "-h"))
+	{
 		ShowCMDHelp();
 		return;
 	}
 
-	if (!_stricmp(szArg, "collected") || !_stricmp(szArg, "-cd")) {
+	bool bCollected 		= false;
+	bool bNeed      		= false;
+
+	if (!_stricmp(szArg, "collected") || !_stricmp(szArg, "-cd"))
+	{
 		bCollected = true;
-	} else if (!_stricmp(szArg, "need") || !_stricmp(szArg, "-n")) {
+	}
+	else if (!_stricmp(szArg, "need") || !_stricmp(szArg, "-n"))
+	{
 		bNeed = true;
-	} else if (!_stricmp(szArg, "both") || !_stricmp(szArg, "-b")) {
+	}
+	else if (!_stricmp(szArg, "both") || !_stricmp(szArg, "-b"))
+	{
 		bCollected = true;
 		bNeed = true;
-	} else {
+	}
+	else
+	{
 		ShowCMDHelp();
 		return;
 	}
 
 	GetArg(szArg, szLine, 2);
 
-	if (!_stricmp(szArg, "log") || !_stricmp(szArg, "-l")) {
+	bool bLog				= false;
+	bool bBazaar 			= false;
+	bool bConsole 			= false;
+
+	if (!_stricmp(szArg, "log") || !_stricmp(szArg, "-l"))
+	{
 		bLog = true;
-	} else if (!_stricmp(szArg, "bazaar") || !_stricmp(szArg, "-bz")) {
+	}
+	else if (!_stricmp(szArg, "bazaar") || !_stricmp(szArg, "-bz"))
+	{
 		bBazaar = true;
-	} else if (!_stricmp(szArg, "console") || !_stricmp(szArg, "-cs")) {
+	}
+	else if (!_stricmp(szArg, "console") || !_stricmp(szArg, "-cs"))
+	{
 		bConsole = true;
-	} else {
+	}
+	else
+	{
 		ShowCMDHelp();
 		return;
 	}
 
 	GetArg(szArg, szLine, 3);
 
-	if (strlen(szArg)) {
-		if (!_stricmp(szArg, "expansion") || !_stricmp(szArg, "-e")) {
+	bool bExpansion			= false;
+	bool bCollection		= false;
+
+	if (strlen(szArg))
+	{
+		if (!_stricmp(szArg, "expansion") || !_stricmp(szArg, "-e"))
+		{
 			bExpansion = true;
-		} else if (!_stricmp(szArg, "collection") || !_stricmp(szArg, "-cn")) {
+		}
+		else if (!_stricmp(szArg, "collection") || !_stricmp(szArg, "-cn"))
+		{
 			bCollection = true;
-		} else {
+		}
+		else
+		{
 			ShowCMDHelp();
 			return;
 		}
 	}
 
-	if (bExpansion || bCollection) {
+	char szCollExpName[256] = { 0 };
+
+	if (bExpansion || bCollection)
+	{
 		GetArg(szCollExpName, szLine, 4);
-		if (strlen(szCollExpName)==0) {
+
+		if (strlen(szCollExpName)==0)
+		{
 			ShowCMDHelp();
 			return;
 		}
-		if (IsNumber(szCollExpName)) {
+
+		if (IsNumber(szCollExpName))
+		{
 			ShowCMDHelp();
 			return;
 		}
 	}
 
 	// Look up by Collection or Expansion if specified, or all.
-	LookupCollection(szCharName, szCollExpName, bCollected, bNeed, bLog, bBazaar, bConsole, bCollection, bExpansion);
+	LookupCollection(pChar->Name, szCollExpName, bCollected, bNeed, bLog, bBazaar, bConsole, bCollection, bExpansion);
 }
 
 void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bool bNeed, bool bLog, bool bBazaar, bool bConsole, bool bCollection, bool bExpansion)
@@ -125,43 +152,30 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 
 	AchievementManager& AchMgr = AchievementManager::Instance();
 
-	int   AchID        = 0;
-	int   AchParentID  = 0;
-	int   AchIdx       = 0;
-	int   AchCt        = 0;
-	int   CompTypeCt   = 0;
-	int   x            = 0;
-	int   y            = 0;
-
-	bool  bFoundCollection = false;
-	bool  bFoundExpansion  = false;
-	bool  bLogStarted      = false;
-	bool  bCollectedStatus = false;
-
+	bool  bFoundExpansion          = false;
+	bool  bFoundCollection         = false;
+	bool  bLogStarted              = false;
 	char* szLogFile;
 	char  szCharBuffer[MAX_STRING] = { 0 };
+	int   iMatchesFound            = 0;
 
-	for (const AchievementCategory& AchCat : AchMgr.categories) {
-
+	for (const AchievementCategory& AchCat : AchMgr.categories)
+	{
 		if (!string_equals(AchCat.name, "Collections")) continue;
 
 		// Secrets of Faydwer says Collections, but there aren't any. As of Terror of Luclin, Events and 10 expansions actually have real collections.
-		AchCt = AchCat.GetAchievementCount();
-		if (!AchCt) continue;
+		if (!AchCat.GetAchievementCount()) continue;
 
 		// Obtain the Expansion name.
-		AchParentID = AchCat.parentId;
-		const AchievementCategory& AchParent = *AchMgr.GetAchievementCategoryById(AchParentID);
+		const AchievementCategory& AchParent = *AchMgr.GetAchievementCategoryById(AchCat.parentId);
 
 		if (bExpansion && !!_stricmp(AchParent.name.c_str(), szCollExpName)) continue;
 
 		bFoundExpansion = true;
 
-		for (x = 0; x < AchCt; ++x) {
-
-			AchID       = AchCat.GetAchievementId(x);
-			AchIdx      = AchMgr.GetAchievementIndexById(AchID);
-			
+		for (int x = 0; x < AchCat.GetAchievementCount(); ++x)
+		{
+			int AchIdx = AchMgr.GetAchievementIndexById(AchCat.GetAchievementId(x));	
 			const SingleAchievementAndComponentsInfo* AchCompInfo = AchMgr.GetAchievementClientInfoByIndex(AchIdx);
 
 			// Anything nested under the achievement?
@@ -174,98 +188,128 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 
 			bFoundCollection = true;
 
-			CompTypeCt = Ach->componentsByType[AchievementComponentCompletion].GetCount();
+			// FIXME We need to verify that its a collectible, not just a collection of achievements.
+			int CompTypeCt = Ach->componentsByType[AchievementComponentCompletion].GetCount();
 
 			// Are we logging the output?
-			if ((bLog || bBazaar) && !bLogStarted) {
-
-				if (!IsPluginLoaded("MQ2Log")) {
-
-					WriteChatf("\aw[MQ2Collectible] \ayMQ2Log must be loaded to log output. Trying to do it for you.");
-					EzCommand("/timed 10 /plugin MQ2Log load");
-					return;
-				}
+			if ((bLog || bBazaar) && !bLogStarted)
+			{
 				szLogFile = CreateLogFileName(szCharName, bCollected, bNeed, bLog, bBazaar);
-
-				WriteChatf("\n\aw[MQ2Collectible] \ayWriting to Logfile: %s", szLogFile);
-
-				// Start logging with mq2log
-				// Write a comment at top with the parameters used to make the log
 				bLogStarted = true;
 			}
 
-			if (bConsole) {
+			if (bConsole)
+			{
 				WriteChatf("\n\aw[MQ2Collectible] \ao%s, %s", Ach->name.c_str(), AchParent.description.c_str());
 				WriteChatf("\ao---------------------------------------------------------------------------------------------------");
 			}
-			if (bLog) {
+
+			if (bLog)
+			{
 				sprintf_s(szCharBuffer, "\n[MQ2Collectible] %s, %s", Ach->name.c_str(), AchParent.description.c_str());
 				sprintf_s(szCharBuffer, "%s\n---------------------------------------------------------------------------------------------------", szCharBuffer);
 				if (!LogOutput(szLogFile, szCharBuffer)) return;
 			}
 
-			// List the collectibles
-			for (int y = 0; y < CompTypeCt; y++) {
+			bool bCollectedStatus = false;
 
+			// List the collectibles
+			for (int y = 0; y < CompTypeCt; y++)
+			{
 				const AchievementComponent& CompTypeCompletion = Ach->componentsByType[AchievementComponentCompletion][y];
 
 				// Need first, since I am assuming more will NEED collectibles, or else they wouldn't use this plugin.
-				if (!AchCompInfo->IsComponentComplete(AchievementComponentCompletion, y) && bNeed) {
-
+				if (!AchCompInfo->IsComponentComplete(AchievementComponentCompletion, y) && bNeed)
+				{
+					iMatchesFound++;
 					bCollectedStatus = false;
 
-					if (bConsole) {
+					if (bConsole)
+					{
 						WriteChatf("\ay%s      \ao%s",NEED,CompTypeCompletion.description.c_str());
 						continue;
 					}
-					if (bLog) {
+
+					if (bLog)
+					{
 						sprintf_s(szCharBuffer,"%s      %s", NEED, CompTypeCompletion.description.c_str());
 						if (!LogOutput(szLogFile, szCharBuffer)) return;
 						continue;
 					}
 				}
 
-				if (AchCompInfo->IsComponentComplete(AchievementComponentCompletion, y) && bCollected) {
-
+				// Collected
+				if (AchCompInfo->IsComponentComplete(AchievementComponentCompletion, y) && bCollected)
+				{
+					iMatchesFound++;
 					bCollectedStatus = true;
 
-					if (bConsole) {
+					if (bConsole)
+					{
 						WriteChatf("\ao%s \ao%s", COLLECTED, CompTypeCompletion.description.c_str());
 						continue;
 					}
-					if (bLog) {
+
+					if (bLog)
+					{
 						sprintf_s(szCharBuffer, "%s %s", COLLECTED, CompTypeCompletion.description.c_str());
 						if (!LogOutput(szLogFile, szCharBuffer)) return;
 						continue;
 					}
 				}
 
-				if (bBazaar && bLogStarted) {
-
+				if (bBazaar && bLogStarted)
+				{
 					sprintf_s(szCharBuffer, "[%s]\n", CompTypeCompletion.description.c_str());
 					sprintf_s(szCharBuffer, "%sCollected=%d\nCollection=%s, %s",szCharBuffer,(int)bCollectedStatus,Ach->name.c_str(),AchParent.description.c_str());
 
-					if (((bNeed && !bCollected) && !bCollectedStatus) || (bNeed && bCollected)) {					
-						sprintf_s(szCharBuffer, "%s\nBuyPriceMin=%s\nBuyPriceMax=%s",szCharBuffer,BUYMIN,BUYMAX);
+					if (((bNeed && !bCollected) && !bCollectedStatus) || (bNeed && bCollected))
+					{					
+						sprintf_s(szCharBuffer, "%s\nBuyPriceMin=%d\nBuyPriceMax=%d\nMinBuyCount=%d",szCharBuffer,BUYMIN,BUYMAX,MINBUYCT);
 					}
-					if (((bCollected && !bNeed) && bCollectedStatus) || (bCollected && bNeed)) {
-						sprintf_s(szCharBuffer, "%s\nSellPriceMin=%s\nSellPriceMax=%s",szCharBuffer,SELLMIN,SELLMAX);
-					}
-					if (!LogOutput(szLogFile, szCharBuffer)) return;
 
+					if (((bCollected && !bNeed) && bCollectedStatus) || (bCollected && bNeed))
+					{
+						sprintf_s(szCharBuffer, "%s\nSellPriceMin=%d\nSellPriceMax=%d",szCharBuffer,SELLMIN,SELLMAX);
+					}
+
+					if (!LogOutput(szLogFile, szCharBuffer)) return;
 				}
 			}
-			// Are we done?
+
+			// Are we done finding a Collection?
 			if (bCollection && bFoundCollection) break;
 		}
+
+		// Are we done finding an Expansion?
 		if (bExpansion && bFoundExpansion) break;
 	}
 
-	if (bCollection && !bFoundCollection) {
+	if (bCollection && !bFoundCollection)
+	{
 		WriteChatf("\n\aw[MQ2Collectible] \ayCould not find Collection %s", szCollExpName);
 	}
-	if (bExpansion && !bFoundExpansion) {
+
+	if (bExpansion && !bFoundExpansion)
+	{
 		WriteChatf("\n\aw[MQ2Collectible] \ayCould not find Expansion %s", szCollExpName);
+	}
+
+	if (iMatchesFound)
+	{
+		if (bConsole)
+		{
+			WriteChatf("\n\aw[MQ2Collectible] \ayFound %d matches", iMatchesFound);
+		}
+
+		if (bLog || bBazaar)
+		{
+			WriteChatf("\n\aw[MQ2Collectible] \ayFound %d matches: %s", iMatchesFound, szLogFile);
+		}
+	}
+	else
+	{
+		WriteChatf("\n\aw[MQ2Collectible] \ayNo matches found.");
 	}
 }
 
@@ -285,24 +329,39 @@ char* CreateLogFileName(char* szCharName, bool bCollected, bool bNeed, bool bLog
 	char* szLogType;
 	char szLogFileName[MAX_STRING] = { 0 };
 
-	if (bCollected && bNeed) {
+	if (bCollected && bNeed)
+	{
 		szCollectStatus = "both";
-	} else if (bCollected) {
+	}
+	else if (bCollected)
+	{
 		szCollectStatus = "coll";
-	} else if (bNeed) {
+	}
+	else if (bNeed)
+	{
 		szCollectStatus = "need";
 	}
 
-	if (bLog) {
+	if (bLog)
+	{
 		szLogType = "log";
-	} else if (bBazaar) {
+	} 
+	else if (bBazaar)
+	{
 		szLogType = "baz";
 	}
 
-	if (bBazaar) sprintf_s(szLogFileName, "%s\\Collectible\\%s_%s_%s_%s.log", gPathLogs, (char*)__ServerName, szCharName, szCollectStatus, szLogType);
-	if (bLog) sprintf_s(szLogFileName, "%s\\Collectible\\%s_%s_%s.log", gPathLogs, (char*)__ServerName, szCharName, szCollectStatus);
+	if (bBazaar)
+	{
+		sprintf_s(szLogFileName, "%s\\Collectible\\%s_%s_%s_%s.log", gPathLogs, (char*)__ServerName, szCharName, szCollectStatus, szLogType);
+	}
 
-	return (char*)szLogFileName;
+	if (bLog)
+	{
+		sprintf_s(szLogFileName, "%s\\Collectible\\%s_%s_%s.log", gPathLogs, (char*)__ServerName, szCharName, szCollectStatus);
+	}
+
+	return szLogFileName;
 }
 
 bool LogOutput(char* szLogFileName, char* szLogThis)
@@ -310,8 +369,10 @@ bool LogOutput(char* szLogFileName, char* szLogThis)
 	FILE* fOut = NULL;
 
 	errno_t bError = fopen_s(&fOut, szLogFileName, "at");
-	if (bError) {
-		MacroError("\aw[MQ2Collectible] \ayCouldn't write to the logfile. Check permissions at directory Logs\\Collectible. Logfile: %s", szLogFileName);
+
+	if (bError)
+	{
+		MacroError("\aw[MQ2Collectible] \ayCouldn't write to the logfile. Check permissions at directory\n\aw[MQ2Collectible] \atLogs\\Collectible. Logfile: %s", szLogFileName);
 		return false;
 	}
 
@@ -323,15 +384,19 @@ bool LogOutput(char* szLogFileName, char* szLogThis)
 
 void ShowCMDHelp()
 {
-			WriteChatf("\awMQ2Collectible \ayUsage: \ag/collectible collected|need|both|help log|bazaar|console (optional unless console then specify collection: expansion|collection \"name\")");
-			WriteChatf("\awMQ2Collectible \ayAbbreviations: \ag-cd|collected, -nd|need, -b|both, -h|h|help, -l|log, -bz|bazaar, -cs|console, -e|expansion, -cn|collection\n");
-			WriteChatf("\awMQ2Collectible \ayExample: \ag/collectible need log collection \"Dead Relics\"\aw Quotations required. Produces logfile with collectibles needed from Dead Relics collection.");
-			WriteChatf("\awMQ2Collectible \ayExample: \ag/collectible -n -l -cn \"Dead Relics\"\aw Same as above with abbreviated parameters.");
-			WriteChatf("\awMQ2Collectible \ayExample: \ag/collectible -b -bz -e \"Terror of Luclin\"\aw Produces Bazaar.mac compatible logfile with all collected and uncollected collectibles from Terror of Luclin expansion.");
-			WriteChatf("\awMQ2Collectible \ayExample of logfile naming convention: \agCollectible_need_bazaar_Terror_of_Luclin.ini");
-			WriteChatf("\awMQ2Collectible \ayExample console: \ag/collectible -b -cs -cn \"Flame-Licked Clothing\n\aw Outputs the status of collectibles from the collection.");
-			WriteChatf("\awMQ2Collectible \ayFor more examples see \aghttps://gitlab.com/redguides/plugins/mq2collectible/README.MD");
-			// WriteChatf("");
+			WriteChatf("\n\aw[MQ2Collectible] \ayUsage: \at/collectible collected|need|both|help log|bazaar|console expansion|collection \"name\"");
+			WriteChatf("\aw[MQ2Collectible] \ayOmitting expansion|collection will return all within the Expansion or within a Collection.\n");
+			WriteChatf("\aw[MQ2Collectible] \ayAbbrevs: \at-cd|collected, -nd|need, -b|both, -h|h|help, -l|log, -bz|bazaar,");
+			WriteChatf("\aw[MQ2Collectible]          \at-cs|console, -e|expansion, -cn|collection\n");
+			WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible need log collection \"Dead Relics\"\aw Quotations required. Provides");
+			WriteChatf("\aw[MQ2Collectible]          \awlogfile with collectibles needed from Dead Relics collection.\n");
+			WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible -n -l -cn \"Dead Relics\"\aw Same as above with abbreviated parameters.\n");
+			WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible -b -bz -e \"Terror of Luclin\"\aw Produces Bazaar.mac compatible logfile");
+			WriteChatf("\aw[MQ2Collectible]          \awwith all collected and uncollected collectibles from Terror of Luclin expansion.\n");
+			WriteChatf("\aw[MQ2Collectible] \ayLogfile name example: \atLogs\\Collectible\\MyCharName_servername_need_baz.log\n");
+			WriteChatf("\aw[MQ2Collectible] \ayExample to console: \at/collectible -b -cs -cn \"Flame-Licked Clothing\"");
+			WriteChatf("\aw[MQ2Collectible]                     \awOutputs the status of collectibles from that collection.\n");
+			WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"]} returns true|false \awfor its collection status.\n");
 }
 
 // ----------------------------------------------
@@ -342,10 +407,8 @@ void ShowTLOHelp();
 
 void CollectibleTLO(SPAWNINFO* pChar, char* szLine)
 {
-		
 	PCHARINFO pCharInfo = GetCharInfo();
 	PcProfile* pCharInfo2 = GetPcProfile();
-
 }
 
 // ----------------------------------------------
@@ -357,13 +420,19 @@ PLUGIN_API void InitializePlugin()
 	DebugSpewAlways("MQ2Collectible::Initializing version %f", MQ2Version);
 
 	const std::string szAlias = GetPrivateProfileString("Aliases", "/collectible", "None", gPathMQini);
-	if (szAlias != "None") {
+
+	if (szAlias != "None")
+	{
 		WriteChatf("\awMQ2Collectible: \arWarning! The alias /collectible already exists. Please delete it by entering \"\ay/alias /collectible delete\ar\" then try again.");
 		EzCommand("/timed 10 /plugin MQ2Collectible unload");
+		// Probably not needed. But at least I won't wake up in the middle of the night wondering about it.
+		return;
 	}
 
 	AddCommand("/collectible", CollectibleCMD);
-	//AddMQ2Data("collectible", CollectibleTLO);
+	//AddMQ2Data("Collectible", CollectibleTLO);
+
+	WriteChatf("\aw[MQ2Collectible] \at/collectible -h \aoby American Nero (https://gitlab.com/redguides/plugins/mq2collectible)");
 }
 
 PLUGIN_API void ShutdownPlugin()
@@ -371,7 +440,7 @@ PLUGIN_API void ShutdownPlugin()
 	DebugSpewAlways("MQ2Collectible::Shutting down");
 
 	RemoveCommand("/collectible");
-	RemoveMQ2Data("collectible");
+	RemoveMQ2Data("Collectible");
 }
 
 /**
