@@ -25,9 +25,6 @@ void CheckLogDirectory();
 char* CreateLogFileName(char* szCharName, bool bCollected, bool bNeed, bool bLog, bool bBazaar);
 bool LogOutput(char* szLogFileName, char* szLogThis);
 
-const char* COLLECTED = "[COLLECTED]";
-const char* NEED      = "[NEED]";
-
 // Bazaar.mac defaults - probly put this in a ini or read from their ini at some point.
 const int SELLMIN   = 2000000;
 const int SELLMAX   = 2000000;
@@ -39,6 +36,7 @@ const int MINBUYCT  = 1;
 // Command section
 // ----------------------------------------------
 
+// May want to place the vars into a struct instead of passing individually?
 void CollectibleCMD(SPAWNINFO* pChar, char* szLine)
 {
 	char szArg[16] 			= { 0 };
@@ -159,6 +157,9 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 	char  szCharBuffer[MAX_STRING] = { 0 };
 	int   iMatchesFound            = 0;
 
+	const char* COLLECTED          = "[COLLECTED]";
+	const char* NEED               = "[NEED]";
+
 	for (const AchievementCategory& AchCat : AchMgr.categories)
 	{
 		if (!string_equals(AchCat.name, "Collections")) continue;
@@ -186,9 +187,11 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 			// Is it the right collection?
 			if (bCollection && !!_stricmp(Ach->name.c_str(), szCollExpName)) continue;
 
+			// We need to verify that its a collectible, not just a collection of achievements.
+			if (strstr(Ach->description.c_str(), "upon completing")) continue;
+
 			bFoundCollection = true;
 
-			// FIXME We need to verify that its a collectible, not just a collection of achievements.
 			int CompTypeCt = Ach->componentsByType[AchievementComponentCompletion].GetCount();
 
 			// Are we logging the output?
@@ -201,13 +204,13 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 			if (bConsole)
 			{
 				WriteChatf("\n\aw[MQ2Collectible] \ao%s, %s", Ach->name.c_str(), AchParent.description.c_str());
-				WriteChatf("\ao---------------------------------------------------------------------------------------------------");
+				WriteChatf("\ao-----------------------------------------------------------------------------------------");
 			}
 
 			if (bLog)
 			{
 				sprintf_s(szCharBuffer, "\n[MQ2Collectible] %s, %s", Ach->name.c_str(), AchParent.description.c_str());
-				sprintf_s(szCharBuffer, "%s\n---------------------------------------------------------------------------------------------------", szCharBuffer);
+				sprintf_s(szCharBuffer, "%s\n-----------------------------------------------------------------------------------------", szCharBuffer);
 				if (!LogOutput(szLogFile, szCharBuffer)) return;
 			}
 
@@ -217,7 +220,7 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 			for (int y = 0; y < CompTypeCt; y++)
 			{
 				const AchievementComponent& CompTypeCompletion = Ach->componentsByType[AchievementComponentCompletion][y];
-
+				
 				// Need first, since I am assuming more will NEED collectibles, or else they wouldn't use this plugin.
 				if (!AchCompInfo->IsComponentComplete(AchievementComponentCompletion, y) && bNeed)
 				{
@@ -263,12 +266,12 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 					sprintf_s(szCharBuffer, "[%s]\n", CompTypeCompletion.description.c_str());
 					sprintf_s(szCharBuffer, "%sCollected=%d\nCollection=%s, %s",szCharBuffer,(int)bCollectedStatus,Ach->name.c_str(),AchParent.description.c_str());
 
-					if (((bNeed && !bCollected) && !bCollectedStatus) || (bNeed && bCollected))
+					if ((bNeed && !bCollectedStatus) || (bNeed && bCollected))
 					{					
 						sprintf_s(szCharBuffer, "%s\nBuyPriceMin=%d\nBuyPriceMax=%d\nMinBuyCount=%d",szCharBuffer,BUYMIN,BUYMAX,MINBUYCT);
 					}
 
-					if (((bCollected && !bNeed) && bCollectedStatus) || (bCollected && bNeed))
+					if ((bCollected && bCollectedStatus) || (bCollected && bNeed))
 					{
 						sprintf_s(szCharBuffer, "%s\nSellPriceMin=%d\nSellPriceMax=%d",szCharBuffer,SELLMIN,SELLMAX);
 					}
@@ -287,7 +290,7 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 
 	if (bCollection && !bFoundCollection)
 	{
-		WriteChatf("\n\aw[MQ2Collectible] \ayCould not find Collection %s", szCollExpName);
+		WriteChatf("\n\aw[MQ2Collectible] \ayCould not find Collection of collectibles %s", szCollExpName);
 	}
 
 	if (bExpansion && !bFoundExpansion)
@@ -318,7 +321,7 @@ void CheckLogDirectory()
 	char szLogDir[MAX_STRING];
 	sprintf_s(szLogDir, "%s\\Collectible", gPathLogs);
 
-	_mkdir(szLogDir);
+	bool bDirStatus = _mkdir(szLogDir);
 }
 
 char* CreateLogFileName(char* szCharName, bool bCollected, bool bNeed, bool bLog, bool bBazaar)
@@ -384,26 +387,24 @@ bool LogOutput(char* szLogFileName, char* szLogThis)
 
 void ShowCMDHelp()
 {
-			WriteChatf("\n\aw[MQ2Collectible] \ayUsage: \at/collectible collected|need|both|help log|bazaar|console expansion|collection \"name\"");
-			WriteChatf("\aw[MQ2Collectible] \ayOmitting expansion|collection will return all within the Expansion or within a Collection.\n");
-			WriteChatf("\aw[MQ2Collectible] \ayAbbrevs: \at-cd|collected, -nd|need, -b|both, -h|h|help, -l|log, -bz|bazaar,");
-			WriteChatf("\aw[MQ2Collectible]          \at-cs|console, -e|expansion, -cn|collection\n");
-			WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible need log collection \"Dead Relics\"\aw Quotations required. Provides");
-			WriteChatf("\aw[MQ2Collectible]          \awlogfile with collectibles needed from Dead Relics collection.\n");
-			WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible -n -l -cn \"Dead Relics\"\aw Same as above with abbreviated parameters.\n");
-			WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible -b -bz -e \"Terror of Luclin\"\aw Produces Bazaar.mac compatible logfile");
-			WriteChatf("\aw[MQ2Collectible]          \awwith all collected and uncollected collectibles from Terror of Luclin expansion.\n");
-			WriteChatf("\aw[MQ2Collectible] \ayLogfile name example: \atLogs\\Collectible\\MyCharName_servername_need_baz.log\n");
-			WriteChatf("\aw[MQ2Collectible] \ayExample to console: \at/collectible -b -cs -cn \"Flame-Licked Clothing\"");
-			WriteChatf("\aw[MQ2Collectible]                     \awOutputs the status of collectibles from that collection.\n");
-			WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"]} returns true|false \awfor its collection status.\n");
+	WriteChatf("\n\aw[MQ2Collectible] \ayUsage: \at/collectible collected|need|both|help log|bazaar|console expansion|collection \"name\"");
+	WriteChatf("\aw[MQ2Collectible] \ayOmitting expansion|collection will return all within the Expansion or within a Collection.\n");
+	WriteChatf("\aw[MQ2Collectible] \ayAbbrevs: \at-cd|collected, -nd|need, -b|both, -h|h|help, -l|log, -bz|bazaar,");
+	WriteChatf("\aw[MQ2Collectible]          \at-cs|console, -e|expansion, -cn|collection\n");
+	WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible need log collection \"Dead Relics\"\aw Quotations required. Provides");
+	WriteChatf("\aw[MQ2Collectible]          \awlogfile with collectibles needed from Dead Relics collection.\n");
+	WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible -n -l -cn \"Dead Relics\"\aw Same as above with abbreviated parameters.\n");
+	WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible -b -bz -e \"Terror of Luclin\"\aw Produces Bazaar.mac compatible logfile");
+	WriteChatf("\aw[MQ2Collectible]          \awwith all collected and uncollected collectibles from Terror of Luclin expansion.\n");
+	WriteChatf("\aw[MQ2Collectible] \ayLogfile name example: \atLogs\\Collectible\\MyCharName_servername_need_baz.log\n");
+	WriteChatf("\aw[MQ2Collectible] \ayExample to console: \at/collectible -b -cs -cn \"Flame-Licked Clothing\"");
+	WriteChatf("\aw[MQ2Collectible]                     \awOutputs the status of collectibles from that collection.\n");
+	WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"]} returns true|false \awfor its collection status.\n");
 }
 
 // ----------------------------------------------
 // TLO Section
 // ----------------------------------------------
-
-void ShowTLOHelp();
 
 void CollectibleTLO(SPAWNINFO* pChar, char* szLine)
 {
