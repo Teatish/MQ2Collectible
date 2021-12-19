@@ -30,6 +30,12 @@ bool LogOutput(char* szLogFileName, char* szLogThis);
 const char* COLLECTED = "[COLLECTED]";
 const char* NEED      = "[NEED]";
 
+// Bazaar.mac defaults
+const char* SELLMIN   = "2000000";
+const char* SELLMAX   = "2000000";
+const char* BUYMIN    = "1";
+const char* BUYMAX    = "1";
+
 // ----------------------------------------------
 // Command section
 // ----------------------------------------------
@@ -236,17 +242,17 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 
 				if (bBazaar && bLogStarted) {
 
-					if (bNeed && !bCollectedStatus) {
-					// Write INI entry for the collectible.
-					// Use bCollectedStatus to set Collected
-					// [CompTypeCompletion.description.c_str()]
-					// Collected=0
-					// Collection=Ach->name.c_str(), AchParent.description.c_str()
-					// etc
+					sprintf_s(szCharBuffer, "[%s]\n", CompTypeCompletion.description.c_str());
+					sprintf_s(szCharBuffer, "%sCollected=%d\nCollection=%s, %s",szCharBuffer,(int)bCollectedStatus,Ach->name.c_str(),AchParent.description.c_str());
+
+					if (((bNeed && !bCollected) && !bCollectedStatus) || (bNeed && bCollected)) {					
+						sprintf_s(szCharBuffer, "%s\nBuyPriceMin=%s\nBuyPriceMax=%s",szCharBuffer,BUYMIN,BUYMAX);
 					}
-					if (bCollected && bCollectedStatus) {
-						// Write INI entry for collected....
+					if (((bCollected && !bNeed) && bCollectedStatus) || (bCollected && bNeed)) {
+						sprintf_s(szCharBuffer, "%s\nSellPriceMin=%s\nSellPriceMax=%s",szCharBuffer,SELLMIN,SELLMAX);
 					}
+					if (!LogOutput(szLogFile, szCharBuffer)) return;
+
 				}
 			}
 			// Are we done?
@@ -293,7 +299,8 @@ char* CreateLogFileName(char* szCharName, bool bCollected, bool bNeed, bool bLog
 		szLogType = "baz";
 	}
 
-	sprintf_s(szLogFileName, "%s\\Collectible\\%s_%s_%s.%s", gPathLogs, (char*)__ServerName, szCharName, szCollectStatus, szLogType);
+	if (bBazaar) sprintf_s(szLogFileName, "%s\\Collectible\\%s_%s_%s_%s.log", gPathLogs, (char*)__ServerName, szCharName, szCollectStatus, szLogType);
+	if (bLog) sprintf_s(szLogFileName, "%s\\Collectible\\%s_%s_%s.log", gPathLogs, (char*)__ServerName, szCharName, szCollectStatus);
 
 	return (char*)szLogFileName;
 }
@@ -313,8 +320,6 @@ bool LogOutput(char* szLogFileName, char* szLogThis)
 
 	return true;
 }
-
-
 
 void ShowCMDHelp()
 {
