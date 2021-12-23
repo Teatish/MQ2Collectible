@@ -19,10 +19,11 @@ PreSetup("MQ2Collectible");
 PLUGIN_VERSION(0.1);
 
 void CollectibleCMD(SPAWNINFO* pChar, char* szLine);
-void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bool bNeed, bool bLog, bool bBazaar, bool bConsole, bool bCollection, bool bExpansion);
+std::string_view LookupCollectible(std::string_view Collectible);
+void LookupCollection(char* szCharName, std::string_view CollExpName, bool bCollected, bool bNeed, bool bLog, bool bBazaar, bool bConsole, bool bCollection, bool bExpansion);
 void ShowCMDHelp();
 void CheckLogDirectory();
-char* CreateLogFileName(char* szCharName, bool bCollected, bool bNeed, bool bLog, bool bBazaar);
+std::string CreateLogFileName(char* szCharName, bool bCollected, bool bNeed, bool bLog, bool bBazaar);
 bool LogOutput(char* szLogFileName, char* szLogThis);
 std::string_view trimP(std::string_view tempStr);
 
@@ -45,7 +46,7 @@ void CollectibleCMD(SPAWNINFO* pChar, char* szLine)
 	// Parse Parameters
 	GetArg(szArg, szLine, 1);
 
-	if (strlen(szLine)==0 || !_stricmp(szArg, "help") || !_stricmp(szArg, "-h"))
+	if (strlen(szLine)==0 || !_stricmp(szArg, "help") || !_stricmp(szArg, "-h") || !_stricmp(szArg, "-help"))
 	{
 		ShowCMDHelp();
 		return;
@@ -54,15 +55,15 @@ void CollectibleCMD(SPAWNINFO* pChar, char* szLine)
 	bool bCollected 		= false;
 	bool bNeed      		= false;
 
-	if (!_stricmp(szArg, "collected") || !_stricmp(szArg, "-cd"))
+	if (!_stricmp(szArg, "collected") || !_stricmp(szArg, "-cd") || !_stricmp(szArg, "-collected"))
 	{
 		bCollected = true;
 	}
-	else if (!_stricmp(szArg, "need") || !_stricmp(szArg, "-n"))
+	else if (!_stricmp(szArg, "need") || !_stricmp(szArg, "-n") || !_stricmp(szArg, "-need"))
 	{
 		bNeed = true;
 	}
-	else if (!_stricmp(szArg, "both") || !_stricmp(szArg, "-b"))
+	else if (!_stricmp(szArg, "all") || !_stricmp(szArg, "-a") || !_stricmp(szArg, "-all"))
 	{
 		bCollected = true;
 		bNeed = true;
@@ -79,15 +80,15 @@ void CollectibleCMD(SPAWNINFO* pChar, char* szLine)
 	bool bBazaar 			= false;
 	bool bConsole 			= false;
 
-	if (!_stricmp(szArg, "log") || !_stricmp(szArg, "-l"))
+	if (!_stricmp(szArg, "log") || !_stricmp(szArg, "-l") || !_stricmp(szArg, "-log"))
 	{
 		bLog = true;
 	}
-	else if (!_stricmp(szArg, "bazaar") || !_stricmp(szArg, "-bz"))
+	else if (!_stricmp(szArg, "bazaar") || !_stricmp(szArg, "-bz") || !_stricmp(szArg, "-baz") || !_stricmp(szArg, "-bazaar"))
 	{
 		bBazaar = true;
 	}
-	else if (!_stricmp(szArg, "console") || !_stricmp(szArg, "-cs"))
+	else if (!_stricmp(szArg, "console") || !_stricmp(szArg, "-cs") || !_stricmp(szArg, "-con") || !_stricmp(szArg, "-console"))
 	{
 		bConsole = true;
 	}
@@ -101,16 +102,21 @@ void CollectibleCMD(SPAWNINFO* pChar, char* szLine)
 
 	bool bExpansion			= false;
 	bool bCollection		= false;
+	bool bCollectible		= false;
 
 	if (strlen(szArg))
 	{
-		if (!_stricmp(szArg, "expansion") || !_stricmp(szArg, "-e"))
+		if (!_stricmp(szArg, "expansion") || !_stricmp(szArg, "-e") || !_stricmp(szArg, "-exp") || !_stricmp(szArg, "-expansion"))
 		{
 			bExpansion = true;
 		}
-		else if (!_stricmp(szArg, "collection") || !_stricmp(szArg, "-cn"))
+		else if (!_stricmp(szArg, "collection") || !_stricmp(szArg, "-cn") || !_stricmp(szArg, "-collection"))
 		{
 			bCollection = true;
+		}
+		else if (!_stricmp(szArg, "collectible") || !_stricmp(szArg, "-cl") || !_stricmp(szArg, "-c") || !_stricmp(szArg, "-collectible"))
+		{
+			bCollectible = true;
 		}
 		else
 		{
@@ -119,33 +125,44 @@ void CollectibleCMD(SPAWNINFO* pChar, char* szLine)
 		}
 	}
 
-	char szCollExpName[256] = { 0 };
+	char szSearchName[256] = { 0 };
 
-	if (bExpansion || bCollection)
+	if (bExpansion || bCollection || bCollectible)
 	{
-		GetArg(szCollExpName, szLine, 4);
+		GetArg(szSearchName, szLine, 4);
 
-		if (strlen(szCollExpName)==0)
+		if (strlen(szSearchName)==0)
 		{
 			ShowCMDHelp();
 			return;
 		}
 
-		if (IsNumber(szCollExpName))
+		if (IsNumber(szSearchName))
 		{
 			ShowCMDHelp();
 			return;
 		}
 	}
 
+	std::string_view AchSearch = trimP(szSearchName);
+
+	if (bCollectible)
+	{
+		std::string_view strCollection = LookupCollectible(AchSearch);
+
+		if (strCollection.size()==0) return;
+		{
+			AchSearch = trimP(strCollection);
+			bCollection = true;
+		}
+	}
+
 	// Look up by Collection or Expansion if specified, or all.
-	LookupCollection(pChar->Name, szCollExpName, bCollected, bNeed, bLog, bBazaar, bConsole, bCollection, bExpansion);
+	LookupCollection(pChar->Name, AchSearch, bCollected, bNeed, bLog, bBazaar, bConsole, bCollection, bExpansion);
 }
 
-void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bool bNeed, bool bLog, bool bBazaar, bool bConsole, bool bCollection, bool bExpansion)
+void LookupCollection(char* szCharName, std::string_view CollExpName, bool bCollected, bool bNeed, bool bLog, bool bBazaar, bool bConsole, bool bCollection, bool bExpansion)
 {
-	std::string_view trimCollExpName = trimP(szCollExpName);
-
 	// Find category "Collections", then search through the subcategories
 	// until we find the needed Collection, then iterate through the
 	// collectibles.
@@ -155,9 +172,10 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 	bool  bFoundExpansion          = false;
 	bool  bFoundCollection         = false;
 	bool  bLogStarted              = false;
-	char* szLogFile;
 	char  szCharBuffer[MAX_STRING] = { 0 };
 	int   iMatchesFound            = 0;
+
+	std::string LogFile     = "";
 
 	const char* COLLECTED	= "[COLLECTED]";
 	const char* NEED		= "[NEED]";
@@ -176,7 +194,7 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 
 		//if (bExpansion && !!_stricmp(AchParent.name.c_str(), szCollExpName)) continue;
 		//if (bExpansion && ci_find_substr(AchParent.name, szCollExpName)<0) continue;
-		if (bExpansion && ci_find_substr(AchParent.name, trimCollExpName)==-1) continue;
+		if (bExpansion && ci_find_substr(AchParent.name, CollExpName)==-1) continue;
 
 		bFoundExpansion = true;
 
@@ -194,21 +212,13 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 			std::string_view AchName = trimP(Ach->name.c_str());
 
 			// Is it the right collection?
-			if (bCollection && ci_find_substr(AchName, trimCollExpName)==-1) continue;
+			if (bCollection && ci_find_substr(AchName, CollExpName)==-1) continue;
 
 			// Is it a collection of collections? A collection is an achievement, and a collection of collections only has components which are achievements.
-			// Given a correct name
 			// Is it an achievement?
-			// 
 
 			// A meta achievement is a collection of achievements that are not based on collectibles.
 			// We need to know that its from collectibles, not just a collection of achievement collections.
-			// Terms like "Complete the", "upon completing" found in the description were tried but results were not satisfactory.
-			//
-			// New idea. Given a collection name, retrieve *all* of the collectibles that it encompasses.
-			// Given a set, explore any subsets, and the members.
-			//
-			// Given a key, find its id and component id. If that component id is a member
 
 			bFoundCollection = true;
 
@@ -217,15 +227,12 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 			// Are we logging the output?
 			if ((bLog || bBazaar) && !bLogStarted)
 			{
-				szLogFile = CreateLogFileName(szCharName, bCollected, bNeed, bLog, bBazaar);
+				LogFile = CreateLogFileName(szCharName, bCollected, bNeed, bLog, bBazaar);
 				bLogStarted = true;
 			}
 
 			bool bCollectedStatus = false;
 			bool bHeaderDone      = false;
-
-			//std::string tempStr = fmt::format("Testing Search [{}] Trim [{}] AchName [{}]", szCollExpName, trimCollExpName, Ach->name.c_str());
-			//WriteChatf("%s", tempStr);
 			
 			// List the collectibles
 			for (int y = 0; y < CompTypeCt; y++)
@@ -236,32 +243,10 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 				// If achievement has a component that is itself an achievement then we know it is a meta achievement.
 				// A component that is not itself an achievement must be a collectible.
 				
-				/*
-				  - Call of the Forsaken (cid: 2100)
-					-- Collections (cid: 2109)
- 
-					  --- Hearing the Call (aid: 2100 0010, cid: NA) [Meta]
-						---- The Source of the Ethernere (cid: 2100 0010)
-						---- Dead Relics (cid: 2100 0011)
-						---- ...
- 
-						--- The Source of the Ethernere (aid: 2107 7200, cid: 2107 7200)
-							---- Scattered Civilization (aid: 2107 7210, ci: 2107 7210
-							---- Rusty Water Can (aid: NA, cid: 2107 7210)
-							---- Scorched Cookware (aid: NA, cid: 2107 7211)
-							---- Bent Notched Blade (aid: NA, cid: 2107 7212)
-							---- ...
-
-						--- Geological Discoveries (id: 2107 7201, cid: 
-				*/
-
-				//std::string tempStr = fmt::format("Checking {} [{}]", y, CompTypeCompletion.description.c_str());
-				//WriteChatf("%s", tempStr.c_str());
-
-				//How many times was the achievement listed? If > 1 then its a meta achievement.
+				//How many times was the achievement listed? If > 0 then its a meta achievement.
 
 				// Is the component also an achievement?
-					
+
 				// This is a terrible, ugly thing. Fine if 2-3 nested levels of a single meta achievement.
 				for (int z = 0; z < AchCat.GetAchievementCount(); ++z)
 				{
@@ -273,37 +258,11 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 
 					const Achievement* AchsAch = AchMgr.GetAchievementByIndex(AchsIdx);
 
-					//std::string tempStr = fmt::format("Checking: {} [{}] [{}] [{}]", AchsIdx, CompTypeCompletion.description.c_str(), AchsAch->name.c_str(), iAchFound);
-					//WriteChatf("%s", tempStr.c_str());
-
 					if (ci_find_substr(AchsAch->name, CompTypeCompletion.description)<0) continue;
 
 					iAchFound++;
 
-					//tempStr = fmt::format("Found: {} [{}] [{}] [{}]", AchsIdx, CompTypeCompletion.description.c_str(), AchsAch->name.c_str(), iAchFound);
-
-					//WriteChatf("%s", tempStr.c_str());
-
 					break;
-
-					//for (int w = 0; w < AchsAch->componentsByType[AchievementComponentCompletion].GetCount(); w++)
-					//{
-					//	const AchievementComponent& AchsComps = AchsAch->componentsByType[AchievementComponentCompletion][w];
-
-					//	std::string tempStr = fmt::format("Checking {} [{}]", w, AchsComps.description.c_str());
-					//	WriteChatf("%s", tempStr.c_str());
-
-					//	if (ci_find_substr(AchName, trimP(AchsComps.description.c_str()))<0) continue;
-
-					//	iAchFound++;
-
-					//	tempStr = fmt::format("Found: {} [{}] [{}]", AchsIdx, AchsComps.description.c_str(), iAchFound);
-
-					//	WriteChatf("%s", tempStr.c_str());
-
-					//	break;
-					//}
-
 				}
 
 				if (bConsole && !bHeaderDone)
@@ -318,7 +277,7 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 					sprintf_s(szCharBuffer, "\n[MQ2Collectible] %s, %s", Ach->name.c_str(), AchParent.description.c_str());
 					//sprintf_s(szCharBuffer, "%s\n%s", szCharBuffer, Ach->description.c_str());
 					sprintf_s(szCharBuffer, "%s\n-----------------------------------------------------------------------------------------", szCharBuffer);
-					if (!LogOutput(szLogFile, szCharBuffer)) return;
+					if (!LogOutput(&LogFile[0], szCharBuffer)) return;
 				}
 
 				bHeaderDone = true;
@@ -349,13 +308,13 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 						if (iAchFound)
 						{
 							sprintf_s(szCharBuffer, "%s %s", INCOMPLETE, CompTypeCompletion.description.c_str());
-							if (!LogOutput(szLogFile, szCharBuffer)) return;
+							if (!LogOutput(&LogFile[0], szCharBuffer)) return;
 							continue;
 						}
 						else
 						{
 							sprintf_s(szCharBuffer, "%s      %s", NEED, CompTypeCompletion.description.c_str());
-							if (!LogOutput(szLogFile, szCharBuffer)) return;
+							if (!LogOutput(&LogFile[0], szCharBuffer)) return;
 							continue;
 						}
 					}
@@ -385,14 +344,14 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 					{
 						if (iAchFound)
 						{
-							sprintf_s(szCharBuffer, "%s  %s", COMPLETED, CompTypeCompletion.description.c_str());
-							if (!LogOutput(szLogFile, szCharBuffer)) return;
+							sprintf_s(szCharBuffer, "%s %s", COMPLETED, CompTypeCompletion.description.c_str());
+							if (!LogOutput(&LogFile[0], szCharBuffer)) return;
 							continue;
 						}
 						else
 						{
 							sprintf_s(szCharBuffer, "%s  %s", COLLECTED, CompTypeCompletion.description.c_str());
-							if (!LogOutput(szLogFile, szCharBuffer)) return;
+							if (!LogOutput(&LogFile[0], szCharBuffer)) return;
 							continue;
 
 						}
@@ -416,7 +375,7 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 							sprintf_s(szCharBuffer, "%s\nSellPriceMin=%d\nSellPriceMax=%d", szCharBuffer, SELLMIN, SELLMAX);
 						}
 
-						if (!LogOutput(szLogFile, szCharBuffer)) return;
+						if (!LogOutput(&LogFile[0], szCharBuffer)) return;
 					}
 				}
 			}
@@ -429,32 +388,67 @@ void LookupCollection(char* szCharName, char* szCollExpName, bool bCollected, bo
 		if (bExpansion && bFoundExpansion) break;
 	}
 
-	if (bCollection && !bFoundCollection)
-	{
-		WriteChatf("\n\aw[MQ2Collectible] \ayThis is not a Collection of Collectibles: %s", szCollExpName);
-	}
-
-	if (bExpansion && !bFoundExpansion)
-	{
-		WriteChatf("\n\aw[MQ2Collectible] \ayCould not find Expansion/Category: %s", szCollExpName);
-	}
-
-	if (iMatchesFound)
-	{
-		if (bConsole)
-		{
-			WriteChatf("\n\aw[MQ2Collectible] \ayFound %d matches", iMatchesFound);
-		}
-
-		if (bLog || bBazaar)
-		{
-			WriteChatf("\n\aw[MQ2Collectible] \ayFound %d matches: %s", iMatchesFound, szLogFile);
-		}
-	}
-	else
+	if (!iMatchesFound)
 	{
 		WriteChatf("\aw[MQ2Collectible] \ayNo matches found.");
 	}
+}
+
+// Given the name of a collectible, find the collection it belongs to.
+std::string_view LookupCollectible(std::string_view CollectibleName)
+{
+	// Find the category "Collections", then search through the achievements
+	// components. When found, check that the component is not itself an achievement
+	// before returning the achievement the collectible was found in.
+
+	AchievementManager& AchMgr = AchievementManager::Instance();
+
+	bool   bMatchFound = 0;
+
+	for (const AchievementCategory& AchCat : AchMgr.categories)
+	{
+		if (!string_equals(AchCat.name, "Collections")) continue;
+
+		// Secrets of Faydwer says Collections, but there aren't any. As of Terror of Luclin, Events and 10 expansions actually have real collections.
+		if (!AchCat.GetAchievementCount()) continue;
+
+		for (int x = 0; x < AchCat.GetAchievementCount(); ++x)
+		{
+			int AchIdx = AchMgr.GetAchievementIndexById(AchCat.GetAchievementId(x));
+			const SingleAchievementAndComponentsInfo* AchCompInfo = AchMgr.GetAchievementClientInfoByIndex(AchIdx);
+
+			// Anything nested under the achievement?
+			if (!AchCompInfo) continue;
+
+			const Achievement* Ach = AchMgr.GetAchievementByIndex(AchIdx);
+
+			// Trimmed at parentheses, if present.
+			std::string_view AchName = trimP(Ach->name.c_str());
+
+			int CompTypeCt = Ach->componentsByType[AchievementComponentCompletion].GetCount();
+
+			//std::string tempStr = fmt::format("Testing Search [{}] Trim [{}] AchName [{}]", szCollExpName, trimCollExpName, Ach->name.c_str());
+			//WriteChatf("%s", tempStr);
+
+			// List the collectibles
+			for (int y = 0; y < CompTypeCt; y++)
+			{
+				const AchievementComponent& CompTypeCompletion = Ach->componentsByType[AchievementComponentCompletion][y];
+
+				if (ci_find_substr(CompTypeCompletion.description, CollectibleName) < 0) continue;
+
+				return AchName;
+			}
+		}
+	}
+
+	if (!bMatchFound)
+	{
+		WriteChatf("\aw[MQ2Collectible] \ayNo matches found.");
+	}
+
+	return "";
+
 }
 
 // Trim the string at the first "(" encountered. If found, search for " (" and trim there instead.
@@ -482,17 +476,17 @@ void CheckLogDirectory()
 	bool bDirStatus = _mkdir(szLogDir);
 }
 
-char* CreateLogFileName(char* szCharName, bool bCollected, bool bNeed, bool bLog, bool bBazaar)
+std::string CreateLogFileName(char* szCharName, bool bCollected, bool bNeed, bool bLog, bool bBazaar)
 {
 	CheckLogDirectory();
 
 	char* szCollectStatus;
 	char* szLogType;
-	char szLogFileName[MAX_STRING] = { 0 };
+	std::string LogFileName;
 
 	if (bCollected && bNeed)
 	{
-		szCollectStatus = "both";
+		szCollectStatus = "all";
 	}
 	else if (bCollected)
 	{
@@ -514,26 +508,28 @@ char* CreateLogFileName(char* szCharName, bool bCollected, bool bNeed, bool bLog
 
 	if (bBazaar)
 	{
-		sprintf_s(szLogFileName, "%s\\Collectible\\%s_%s_%s_%s.log", gPathLogs, (char*)__ServerName, szCharName, szCollectStatus, szLogType);
+		LogFileName = fmt::format("{}\\Collectible\\{}_{}_{}_{}.log", gPathLogs, (char*)__ServerName, szCharName, szCollectStatus, szLogType);
 	}
 
 	if (bLog)
 	{
-		sprintf_s(szLogFileName, "%s\\Collectible\\%s_%s_%s.log", gPathLogs, (char*)__ServerName, szCharName, szCollectStatus);
+		LogFileName = fmt::format("{}\\Collectible\\{}_{}_{}.log", gPathLogs, (char*)__ServerName, szCharName, szCollectStatus);
 	}
 
-	return szLogFileName;
+	WriteChatf("\n\aw[MQ2Collectible] \ayLog appended to: \aw%s\n", LogFileName);
+
+	return LogFileName;
 }
 
-bool LogOutput(char* szLogFileName, char* szLogThis)
+bool LogOutput(char* LogFileName, char* szLogThis)
 {
 	FILE* fOut = NULL;
 
-	errno_t bError = fopen_s(&fOut, szLogFileName, "at");
+	errno_t bError = fopen_s(&fOut, LogFileName, "at");
 
 	if (bError)
 	{
-		MacroError("\aw[MQ2Collectible] \ayCouldn't write to the logfile. Check permissions at directory\n\aw[MQ2Collectible] \atLogs\\Collectible. Logfile: %s", szLogFileName);
+		MacroError("\aw[MQ2Collectible] \ayCouldn't write to the logfile. Check permissions at directory\n\aw[MQ2Collectible] \atLogs\\Collectible. Logfile: %s", LogFileName);
 		return false;
 	}
 
@@ -545,19 +541,23 @@ bool LogOutput(char* szLogFileName, char* szLogThis)
 
 void ShowCMDHelp()
 {
-	WriteChatf("\n\aw[MQ2Collectible] \ayUsage: \at/collectible collected|need|both|help log|bazaar|console expansion|collection \"name\"");
-	WriteChatf("\aw[MQ2Collectible] \ayOmitting expansion|collection will return all within the Expansion or within a Collection.");
-	WriteChatf("\aw[MQ2Collectible] \ayExpansions (starting with Call of the Forsaken) and the Event category have collectibles.\n");
-	WriteChatf("\aw[MQ2Collectible] \ayAbbrevs: \at-cd|collected, -nd|need, -b|both, -h|h|help, -l|log, -bz|bazaar,");
-	WriteChatf("\aw[MQ2Collectible]          \at-cs|console, -e|expansion, -cn|collection\n");
-	WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible need log collection \"The Plaguebringer's Chosen\"\aw Note that quotes are required.\n");
-	WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible -n -l -cn \"The Plaguebringer's Chosen\"\aw Same as above with abbreviated parameters.\n");
-	WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible -b -bz -e \"Terror of Luclin\"\aw Produces Bazaar.mac compatible logfile");
-	WriteChatf("\aw[MQ2Collectible]          \awwith all collected and uncollected collectibles. A big list!\n");
+	WriteChatf("\n\aw[MQ2Collectible] \ayUsage: \at/collectible collected|need|all|help log|bazaar|console expansion|collection|collectible \"name\"\n");
+	WriteChatf("\aw[MQ2Collectible] \ayOmitting the \"name\" when searching for expansion|collection will return all results within. Accepts partial name.");
+	WriteChatf("\aw[MQ2Collectible] \ayExpansions (starting with Call of the Forsaken), and the Event category, have collectibles.\n");
+	WriteChatf("\aw[MQ2Collectible] \ayAbbrevs: \at-cd|collected, -nd|need, -a|all, -h|h|help, -l|log, -bz|bazaar,");
+	WriteChatf("\aw[MQ2Collectible]          \at-cs|console, -e|expansion, -cn|collection -cl|collectible\n");
+	WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible need log collection \"The Plaguebringer's Chosen\"\aw Note that quotes are required.");
+	WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible -n -l -cn \"The Plaguebringer's Chosen\"\aw Same as above with abbreviated parameters.");
+	WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible -a -cs -cl \"frozen giant's toe\" ");
+	WriteChatf("\aw[MQ2Collectible] \ayExample: \at/collectible -a -bz -e \"Terror of Luclin\"\aw Produces Bazaar.mac compatible logfile");
+	WriteChatf("\aw[MQ2Collectible]          \awwith all collected and uncollected collectibles. A big list!");
 	WriteChatf("\aw[MQ2Collectible] \ayLogfile name example: \atLogs\\Collectible\\MyCharName_servername_need_baz.log\n");
-	WriteChatf("\aw[MQ2Collectible] \ayExample to console: \at/collectible -b -cs -cn \"Flame-Licked Clothing\"");
+	WriteChatf("\aw[MQ2Collectible] \ayExample to console: \at/collectible -a -cs -cn \"Flame-Licked Clothing\"");
 	WriteChatf("\aw[MQ2Collectible]                     \awOutputs the status of collectibles from that collection.\n");
-	WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"]} returns true|false \awfor its collection status.\n");
+	WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"].Collected} returns -1 (not found), 0|1 collected status.");
+	WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"].Collection} Returns the collection name of the collectible or NULL.");
+	WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"].Expansion} Returns the expansion name or NULL.");
+	WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"].All} Returns the expansion and collection name or NULL.\n");
 }
 
 // ----------------------------------------------
