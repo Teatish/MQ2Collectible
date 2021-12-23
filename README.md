@@ -1,45 +1,45 @@
 # MQ2Collectible
 
-- Command /collectible provides readable output on the status of Collectibles within Collections and by Expansion (or Events).
-- TLO ${Collectible["collectible name"]} provides Collectible status
+- Command /collectible searches Achievements and provides readable output on the status of Collections and Collectibles
+- TLO ${Collectible["collectible name"]} provides Collectible status and other properties
 
 ## Usage
 
 ```
-/collectible collected|need|both|help log|bazaar|console (optional: expansion|collection "name")
+/collectible collected|need|all|help log|bazaar|console optional: expansion|collection|collectible "name"
 
-${Collectible["collectible name"]}
+${Collectible["collectible name"].Collected; .Expansion; .Collection; .Both}
 ```
 
-- Parameters must be ordered as shown.
+- /collectible parameters must be ordered as shown.
 - The "name" must be enclosed by quotes.
+- The Collection and its components are returned when searching by Collectible.
 - Logfiles are appended to.
-- Use the entire collection name including parentheses, e.g. "Headhunter (The Overthere)"
-- Collections of collections will slip into the results, e.g. "Dead Relics".
 
 ### Parameter Abbreviations
 
 ```
 -cd|collected
  -n|need
- -b|both
+ -a|all
  -h|h|help|(no parameters)
  -l|log
 -bz|bazaar
 -cs|console
  -e|expansion
 -cn|collection
+-cl|collectible
 ```
 
 ## Command Examples
 
 When using the bazaar logfile option, please note:
 
-- The bazaar logfile is provided for you to copy/paste to your Bazaar.ini. Any additional parameters in the [collectible name] blocks are informational and have no bearing on Bazaar.mac.
+- The bazaar logfile is provided for you to copy/paste to your Bazaar.ini. Results are appended, not replaced like an INI. Any additional parameters in the [collectible name] blocks are informational and have no bearing on Bazaar.mac.
 - **collected** assumes you want to _sell_ collectibles and provides default sell (2000000pp) parameters
 - **need** assumes you want to _buy_ collectibles and provides default buy (1pp) parameters
-- **both** provides default _buy_ (1pp) and _sell_ (2000000pp) parameters
-- Values are hardcoded. In the future, settings from Bazaar_settings.ini could be read.
+- **all** provides default _buy_ (1pp) and _sell_ (2000000pp) parameters
+- Default buy and sell amounts are hardcoded.
 
 **/collectible need console collection "Flame-Licked Clothing"**
 
@@ -54,9 +54,9 @@ MQ2Collectible: Flame-Licked Clothing, Claws of Veeshan
 Flame-Licked Belt [NEED]
 ```
 
-**/collectible -b -l -cn "Flame-Licked Clothing"**
+**/collectible -a -l -cn "Flame-Licked Clothing"**
 
-Logfile: Logs\Collectible\server_charname_both.ini
+Logfile: Logs\Collectible\server_charname_all.ini
 ```
 [MQ2Collectible] Flame-Licked Clothing, Claws of Veeshan
 -----------------------------------------------------------------------------------------
@@ -70,11 +70,11 @@ Logfile: Logs\Collectible\server_charname_both.ini
 [NEED]      Flame-Licked Belt
 ```
 
-**/collectible -b -bz -e "Terror of Luclin"**
+**/collectible -a -bz -e "Terror of Luclin"**
 
 Outputs Bazaar.mac compatible logfile with _all_ the collectibles from the Terror of Luclin expansion, a very long list:
 
-Logfile: Logs\Collectible\server_charname_need_baz.ini
+Logfile: Logs\Collectible\server_charname_all_baz.ini
 ```
 [Strangely Worded Note about Hearth]
 Collected=0
@@ -100,40 +100,24 @@ etc.
 
  Returns -1 if the collectible is not found, otherwise 0|1 depending on whether it has been collected.
 ```
-${Collectible["collectible name"]}
+${Collectible["collectible name"].Status}
 ```
-
-**MacroScript**
-
-Oopsies... this will return -1
+Returns -1 if not found, otherwise the name of the Expansion, Collection, or both.
 ```
-/varset Coll ${Collectible["Brasse's Brassiere"]}
-```
-
-Returns 0|1 depending on its status.
-```
-/echo ${Collectible["Clutching Foot"]}
-```
-
-**LUA**
-
-Oopsies...typo... returns -1
-```
-mq = require('mq')
-CollectibleStatus = mq.TLO.Collectible('Blame-Licked Belt')
-```
-
-Thumbs Up. Returns 0|1
-```
-mq = require('mq')
-CollectibleStatus = mq.TLO.Collectible('Flame-Licked Belt')
+${Collectible["Broken Wrist Shackles"].Status}     -> 0|1
+${Collectible["Broken Wrist Shackles"].Expansion}  -> "Terror of Luclin"
+${Collectible["Broken Wrist Shackles"].Collection} -> "Breaker of Chains"
+${Collectible["Broken Wrist Shackles"].Both}       -> "Breaker of Chains, Terror of Luclin"
+${Collectible["Brasse's Brassiere"].Status}        -> -1
+${Collectible["Brasse's Brassiere"].Collection}    -> -1
 ```
 
 **Config\MQ2Hud.ini**
 
+Enables you to view the status of collectibles when mousing over them.
+
 You may want to use something like boxhud instead... or perhaps that functionality will be added here.
 
-Enables you to view the status of collectibles when mousing over them.
 ```
 [Elements]
 CollectionItemMOI = 7,30,0,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItem[=${EverQuest.LastMouseOver.Tooltip}]}]},Collected,Need]},""]},""]}
