@@ -23,8 +23,8 @@ std::string_view LookupCollectible(std::string_view Collectible);
 void LookupCollection(char* szCharName, std::string_view CollExpName, bool bCollected, bool bNeed, bool bLog, bool bBazaar, bool bConsole, bool bCollection, bool bExpansion);
 void ShowCMDHelp();
 void CheckLogDirectory();
-std::string CreateLogFileName(char* szCharName, bool bCollected, bool bNeed, bool bLog, bool bBazaar);
-bool LogOutput(char* szLogFileName, char* szLogThis);
+std::string CreateLogFileName(const char* szCharName, bool bCollected, bool bNeed, bool bLog, bool bBazaar);
+bool LogOutput(const char* szLogFileName, const char* szLogThis);
 std::string_view trimP(std::string_view tempStr);
 
 // Bazaar.mac defaults - probly put this in a ini or read from their ini at some point.
@@ -150,7 +150,7 @@ void CollectibleCMD(SPAWNINFO* pChar, char* szLine)
 	{
 		std::string_view strCollection = LookupCollectible(AchSearch);
 
-		if (strCollection.size()==0) return;
+		if (strCollection.empty()) return;
 		{
 			AchSearch = trimP(strCollection);
 			bCollection = true;
@@ -209,7 +209,7 @@ void LookupCollection(char* szCharName, std::string_view CollExpName, bool bColl
 			const Achievement* Ach = AchMgr.GetAchievementByIndex(AchIdx);
 			
 			// Trimmed at parentheses, if present.
-			std::string_view AchName = trimP(Ach->name.c_str());
+			std::string_view AchName = trimP(Ach->name);
 
 			// Is it the right collection?
 			if (bCollection && ci_find_substr(AchName, CollExpName)==-1) continue;
@@ -277,7 +277,7 @@ void LookupCollection(char* szCharName, std::string_view CollExpName, bool bColl
 					sprintf_s(szCharBuffer, "\n[MQ2Collectible] %s, %s", Ach->name.c_str(), AchParent.description.c_str());
 					//sprintf_s(szCharBuffer, "%s\n%s", szCharBuffer, Ach->description.c_str());
 					sprintf_s(szCharBuffer, "%s\n-----------------------------------------------------------------------------------------", szCharBuffer);
-					if (!LogOutput(&LogFile[0], szCharBuffer)) return;
+					if (!LogOutput(LogFile.c_str(), szCharBuffer)) return;
 				}
 
 				bHeaderDone = true;
@@ -308,13 +308,13 @@ void LookupCollection(char* szCharName, std::string_view CollExpName, bool bColl
 						if (iAchFound)
 						{
 							sprintf_s(szCharBuffer, "%s %s", INCOMPLETE, CompTypeCompletion.description.c_str());
-							if (!LogOutput(&LogFile[0], szCharBuffer)) return;
+							if (!LogOutput(LogFile.c_str(), szCharBuffer)) return;
 							continue;
 						}
 						else
 						{
 							sprintf_s(szCharBuffer, "%s      %s", NEED, CompTypeCompletion.description.c_str());
-							if (!LogOutput(&LogFile[0], szCharBuffer)) return;
+							if (!LogOutput(LogFile.c_str(), szCharBuffer)) return;
 							continue;
 						}
 					}
@@ -345,13 +345,13 @@ void LookupCollection(char* szCharName, std::string_view CollExpName, bool bColl
 						if (iAchFound)
 						{
 							sprintf_s(szCharBuffer, "%s %s", COMPLETED, CompTypeCompletion.description.c_str());
-							if (!LogOutput(&LogFile[0], szCharBuffer)) return;
+							if (!LogOutput(LogFile.c_str(), szCharBuffer)) return;
 							continue;
 						}
 						else
 						{
 							sprintf_s(szCharBuffer, "%s  %s", COLLECTED, CompTypeCompletion.description.c_str());
-							if (!LogOutput(&LogFile[0], szCharBuffer)) return;
+							if (!LogOutput(LogFile.c_str(), szCharBuffer)) return;
 							continue;
 
 						}
@@ -375,7 +375,7 @@ void LookupCollection(char* szCharName, std::string_view CollExpName, bool bColl
 							sprintf_s(szCharBuffer, "%s\nSellPriceMin=%d\nSellPriceMax=%d", szCharBuffer, SELLMIN, SELLMAX);
 						}
 
-						if (!LogOutput(&LogFile[0], szCharBuffer)) return;
+						if (!LogOutput(LogFile.c_str(), szCharBuffer)) return;
 					}
 				}
 			}
@@ -423,7 +423,7 @@ std::string_view LookupCollectible(std::string_view CollectibleName)
 			const Achievement* Ach = AchMgr.GetAchievementByIndex(AchIdx);
 
 			// Trimmed at parentheses, if present.
-			std::string_view AchName = trimP(Ach->name.c_str());
+			std::string_view AchName = trimP(Ach->name);
 
 			int CompTypeCt = Ach->componentsByType[AchievementComponentCompletion].GetCount();
 
@@ -476,12 +476,13 @@ void CheckLogDirectory()
 	bool bDirStatus = _mkdir(szLogDir);
 }
 
-std::string CreateLogFileName(char* szCharName, bool bCollected, bool bNeed, bool bLog, bool bBazaar)
+std::string CreateLogFileName(const char* szCharName, bool bCollected, bool bNeed, bool bLog, bool bBazaar)
 {
 	CheckLogDirectory();
 
-	char* szCollectStatus;
-	char* szLogType;
+	const char* szCollectStatus = nullptr;
+	const char* szLogType = nullptr;
+
 	std::string LogFileName;
 
 	if (bCollected && bNeed)
@@ -521,7 +522,7 @@ std::string CreateLogFileName(char* szCharName, bool bCollected, bool bNeed, boo
 	return LogFileName;
 }
 
-bool LogOutput(char* LogFileName, char* szLogThis)
+bool LogOutput(const char* LogFileName, const char* szLogThis)
 {
 	FILE* fOut = NULL;
 
