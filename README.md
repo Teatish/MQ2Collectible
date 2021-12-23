@@ -1,6 +1,6 @@
 # MQ2Collectible
 
-- Command /collectible provides log output on the status of Collectibles within Collections and Expansions.
+- Command /collectible provides readable output on the status of Collectibles within Collections and by Expansion (or Events).
 - TLO ${Collectible["collectible name"]} provides Collectible status
 
 ## Usage
@@ -8,13 +8,14 @@
 ```
 /collectible collected|need|both|help log|bazaar|console (optional: expansion|collection "name")
 
-${Collectible["collectible name"]} returns true/false
+${Collectible["collectible name"]}
 ```
 
 - Parameters must be ordered as shown.
-- The "name" must be enclosed with quotes.
+- The "name" must be enclosed by quotes.
 - Logfiles are appended to.
-- Be sure to use the entire collection name, including parentheses, e.g. "Headhunter (The Overthere)"
+- Use the entire collection name including parentheses, e.g. "Headhunter (The Overthere)"
+- Collections of collections will slip into the results, e.g. "Dead Relics".
 
 ### Parameter Abbreviations
 
@@ -44,7 +45,9 @@ When using the bazaar logfile option, please note:
 
 **/collectible need log collection "Flame-Licked Clothing"**
 
-Outputs to console (-cs), or to logfile (-l): Logs\Collectible\server_charname_need.ini
+Outputs to console, or to logfile:
+
+Logs\Collectible\server_charname_need.ini
 ```
 MQ2Collectible: Flame-Licked Clothing, Claws of Veeshan
 -------------------------------------------------------------------------------
@@ -67,71 +70,30 @@ Logfile: Logs\Collectible\server_charname_both.ini
 [NEED]      Flame-Licked Belt
 ```
 
-**/collectible need bazaar expansion "Terror of Luclin"**
+**/collectible -b -bz -e "Terror of Luclin"**
 
-Outputs Collectibles from _all_ collections across _all_ expansions. I am going to spare you the several thousand line dump. DIY!
-
-Logfile: Logs\Collectible\server_charname_need_baz.log
-
-**/collectible -n -bz -e "Terror of Luclin"**
-
-Outputs Bazaar.mac compatible logfile with _all_ the needed collectibles from the Terror of Luclin expansion (actual results not shown):
+Outputs Bazaar.mac compatible logfile with _all_ the collectibles from the Terror of Luclin expansion, a very long list:
 
 Logfile: Logs\Collectible\server_charname_need_baz.ini
 ```
-[Collectible Name]
+[Strangely Worded Note about Hearth]
 Collected=0
-Collection=collection name, Terror of Luclin
+Collection=Found Paper, Terror of Luclin
 BuyPriceMin=1
 BuyPriceMax=1
 MinBuyCount=1
-[Collectible Name]
-Collected=0
-Collection=collection name, Terror of Luclin
+SellPriceMin=2000000
+SellPriceMax=2000000
+[Broken Wrist Shackles]
+Collected=1
+Collection=Breaker of Chains, Terror of Luclin
 BuyPriceMin=1
 BuyPriceMax=1
 MinBuyCount=1
+SellPriceMin=2000000
+SellPriceMax=2000000
 
 etc.
-```
-
-**/collectible collected bazaar collection "Dead Relics"**
-Outputs Bazaar.mac compatible logfile with all the collectibles from the Dead Relics collection:
-
-Logfile: Logs\Collectible\server_charname_coll_baz.ini
-```
-[The Plaguebringer's Chosen]
-Collected=1
-Collection=Dead Relics, Call of the Forsaken
-BuyPriceMin=1
-BuyPriceMax=1
-MinBuyCount=1
-SellPriceMin=2000000
-SellPriceMax=2000000
-[The Spared]
-Collected=0
-Collection=Dead Relics, Call of the Forsaken
-BuyPriceMin=1
-BuyPriceMax=1
-MinBuyCount=1
-SellPriceMin=2000000
-SellPriceMax=2000000
-[Kyle's Cadre]
-Collected=0
-Collection=Dead Relics, Call of the Forsaken
-BuyPriceMin=1
-BuyPriceMax=1
-MinBuyCount=1
-SellPriceMin=2000000
-SellPriceMax=2000000
-[Remnants of the Unlucky]
-Collected=1
-Collection=Dead Relics, Call of the Forsaken
-BuyPriceMin=1
-BuyPriceMax=1
-MinBuyCount=1
-SellPriceMin=2000000
-SellPriceMax=2000000
 ```
 
 ## TLO Examples
@@ -148,20 +110,20 @@ Oopsies... this will return -1
 /varset Coll ${Collectible["Brasse's Brassiere"]}
 ```
 
-Thumbs Up - returns 0|1 depending on its status.
+Returns 0|1 depending on its status.
 ```
 /echo ${Collectible["Clutching Foot"]}
 ```
 
 **LUA**
 
-Oopsies...
+Oopsies...typo... returns -1
 ```
 mq = require('mq')
 CollectibleStatus = mq.TLO.Collectible('Blame-Licked Belt')
 ```
 
-Thumbs Up
+Thumbs Up. Returns 0|1
 ```
 mq = require('mq')
 CollectibleStatus = mq.TLO.Collectible('Flame-Licked Belt')
