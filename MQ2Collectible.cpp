@@ -3,10 +3,10 @@
 // by American Nero, December 16, 2021
 //
 // Appreciation to Kaen01 for his suggestion to add logfile output in Bazaar.mac format,
-// and Knightly, Chatwiththisname, and Brainiac for stylistic and technical guidance.
+// and Brainiac, Knightly, and Chatwiththisname for stylistic and technical guidance.
 //
 // Provides command /collectible that produces logfiles and console output
-// Provides TLO ${Collectible} that retrieves a collectibles status (true = collected, false = need)
+// Provides TLO ${Collectible} that retrieves a collectibles status and other members
 //
 // Repo with detailed usage at https://gitlab.com/redguides/plugins/mq2collectible/README.MD
 //
@@ -18,6 +18,8 @@
 PreSetup("MQ2Collectible");
 PLUGIN_VERSION(0.1);
 
+using namespace mq::datatypes;
+
 void CollectibleCMD(SPAWNINFO* pChar, char* szLine);
 std::string_view LookupCollectible(std::string_view Collectible);
 void LookupCollection(char* szCharName, std::string_view CollExpName, bool bCollected, bool bNeed, bool bLog, bool bBazaar, bool bConsole, bool bCollection, bool bExpansion);
@@ -26,6 +28,7 @@ void CheckLogDirectory();
 std::string CreateLogFileName(const char* szCharName, bool bCollected, bool bNeed, bool bLog, bool bBazaar);
 bool LogOutput(const char* szLogFileName, const char* szLogThis);
 std::string_view trimP(std::string_view tempStr);
+int GetCollectibleState(std::string_view CollectibleName);
 
 // Bazaar.mac defaults - probly put this in a ini or read from their ini at some point.
 const int SELLMIN   = 2000000;
@@ -448,7 +451,6 @@ std::string_view LookupCollectible(std::string_view CollectibleName)
 	}
 
 	return "";
-
 }
 
 // Trim the string at the first "(" encountered. If found, search for " (" and trim there instead.
@@ -555,20 +557,283 @@ void ShowCMDHelp()
 	WriteChatf("\aw[MQ2Collectible] \ayLogfile name example: \atLogs\\Collectible\\MyCharName_servername_need_baz.log\n");
 	WriteChatf("\aw[MQ2Collectible] \ayExample to console: \at/collectible -a -cs -cn \"Flame-Licked Clothing\"");
 	WriteChatf("\aw[MQ2Collectible]                     \awOutputs the status of collectibles from that collection.\n");
-	WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"].Collected} returns -1 (not found), 0|1 collected status.");
+	WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible} Members: Collected|Status, ComponentID, Name, Expansion, Collection, FullCollection");
+	WriteChatf("\aw[MQ2Collectible] \ayTLO: \atPartial collectible names are accepted. Case insensitive. The first match is returned. Use Name to see the full name.");
+	WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"].Collected} returns -1 (not found), or 0|1 collected status.");
 	WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"].Collection} Returns the collection name of the collectible or NULL.");
-	WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"].Expansion} Returns the expansion name or NULL.");
-	WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"].All} Returns the expansion and collection name or NULL.\n");
+	WriteChatf("\aw[MQ2Collectible] \ayTLO: \at${Collectible[\"collectible name\"].ComponentID} Returns the component ID of the collectible.\n");
 }
 
 // ----------------------------------------------
 // TLO Section
 // ----------------------------------------------
 
-void CollectibleTLO(SPAWNINFO* pChar, char* szLine)
+// MQ2CollectibleType
+class MQ2CollectibleType : public MQ2Type
 {
-	PCHARINFO pCharInfo = GetCharInfo();
-	PcProfile* pCharInfo2 = GetPcProfile();
+	public:
+		MQ2CollectibleType();
+
+		void MQ2CollectibleType::GetCollectibleState(std::string_view CollectibleName);
+		bool GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest) override;
+		static bool dataCollectible(const char* szIndex, MQTypeVar& Ret);
+};
+
+MQ2CollectibleType* pCollectibleType = nullptr;
+
+static std::string search				= "";
+static std::string previoussearch		= "";
+static int id							= 0;
+static int status						= -1;
+static std::string name					= "-1";
+static std::string expansion			= "-1";
+static std::string collection			= "-1";
+static std::string collectionexpansion	= "-1";
+
+enum class CollectibleMembers
+{
+	ComponentID = 1,
+	Status,
+	Collected,
+	Name,
+	Expansion,
+	Collection,
+	FullCollection,
+};
+
+MQ2CollectibleType::MQ2CollectibleType() : MQ2Type("collectible")
+{
+	ScopedTypeMember(CollectibleMembers, ComponentID);
+	ScopedTypeMember(CollectibleMembers, Status);
+	ScopedTypeMember(CollectibleMembers, Collected);
+	ScopedTypeMember(CollectibleMembers, Name);
+	ScopedTypeMember(CollectibleMembers, Expansion);
+	ScopedTypeMember(CollectibleMembers, Collection);
+	ScopedTypeMember(CollectibleMembers, FullCollection);
+}
+
+// Given the name of a collectible, find the collection it belongs to.
+void MQ2CollectibleType::GetCollectibleState(std::string_view CollectibleName)
+{
+	previoussearch = search;
+
+	// Find the category "Collections", then search through the achievements
+	// components. When found, check that the component is not itself an achievement
+	// before returning the achievement the collectible was found in.
+
+	AchievementManager& AchMgr = AchievementManager::Instance();
+
+	bool   bMatchFound = 0;
+
+	for (const AchievementCategory& AchCat : AchMgr.categories)
+	{
+		if (!string_equals(AchCat.name, "Collections")) continue;
+
+		// Secrets of Faydwer says Collections, but there aren't any. As of Terror of Luclin, Events and 10 expansions actually have real collections.
+		if (!AchCat.GetAchievementCount()) continue;
+
+		// Obtain the Expansion name.
+		const AchievementCategory& AchParent = *AchMgr.GetAchievementCategoryById(AchCat.parentId);
+		for (int x = 0; x < AchCat.GetAchievementCount(); ++x)
+		{
+			int AchIdx = AchMgr.GetAchievementIndexById(AchCat.GetAchievementId(x));
+			const SingleAchievementAndComponentsInfo* AchCompInfo = AchMgr.GetAchievementClientInfoByIndex(AchIdx);
+
+			// Anything nested under the achievement?
+			if (!AchCompInfo) continue;
+
+			const Achievement* Ach = AchMgr.GetAchievementByIndex(AchIdx);
+
+			// Trimmed at parentheses, if present.
+			std::string_view AchName = trimP(Ach->name);
+
+			int CompTypeCt = Ach->componentsByType[AchievementComponentCompletion].GetCount();
+
+			//std::string tempStr = fmt::format("Testing Search [{}] Trim [{}] AchName [{}]", szCollExpName, trimCollExpName, Ach->name.c_str());
+			//WriteChatf("%s", tempStr);
+
+			// List the collectibles
+			for (int y = 0; y < CompTypeCt; y++)
+			{
+				const AchievementComponent& CompTypeCompletion = Ach->componentsByType[AchievementComponentCompletion][y];
+
+				if (ci_find_substr(CompTypeCompletion.description, CollectibleName) < 0) continue;
+
+				// We may have been given a partial collectible name; grab the name from the object.
+				id = CompTypeCompletion.id;
+				status = AchCompInfo->IsComponentComplete(AchievementComponentCompletion, y) ? 1 : 0;
+				name = CompTypeCompletion.description;
+				collection = AchName;
+				expansion = AchParent.name;
+				collectionexpansion = fmt::format("{}, {}", AchName, AchParent.name);
+
+				//std::string tempStr = fmt::format("[{}] [{}] [{}] [{}] [{}]", status, name, collection, expansion, collectionexpansion);
+				//WriteChatf("%s", tempStr);
+
+				return;
+			}
+		}
+	}
+
+	id = -1;
+	status = -1;
+	name = "-1";
+	collection = "-1";
+	expansion = "-1";
+	collectionexpansion = "-1";
+
+	return;
+}
+
+bool MQ2CollectibleType::GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest)
+{
+	PcProfile* pProfile = GetPcProfile();
+	if (!pProfile) return false;
+
+	MQTypeMember* pMember = MQ2CollectibleType::FindMember(Member);
+	if (!pMember) return false;
+
+	switch (static_cast<CollectibleMembers>(pMember->ID))
+	{
+	case CollectibleMembers::ComponentID:
+		if (search == previoussearch && status == 1)
+		{
+			Dest.DWord = id;
+			Dest.Type = pIntType;
+
+			return true;
+		}
+
+		GetCollectibleState(search);
+		Dest.DWord = id;
+		Dest.Type = pIntType;
+
+		return true;
+
+		// Alias of Collected
+	case CollectibleMembers::Status:
+		if (search == previoussearch && status == 1)
+		{
+			Dest.DWord = status;
+			Dest.Type = pIntType;
+
+			return true;
+		}
+
+		GetCollectibleState(search);
+		Dest.DWord = status;
+		Dest.Type = pIntType;
+
+		return true;
+
+	case CollectibleMembers::Collected:
+
+		if (search == previoussearch && status == 1)
+		{
+			Dest.DWord = status;
+			Dest.Type = pIntType;
+
+			return true;
+		}
+
+		GetCollectibleState(search);
+		Dest.DWord = status;
+		Dest.Type = pIntType;
+
+		return true;
+
+	case CollectibleMembers::Name:
+
+		if (search == previoussearch && status != -1)
+		{
+			strcpy_s(DataTypeTemp, name.c_str());
+			Dest.Ptr = &DataTypeTemp[0];
+			Dest.Type = pStringType;
+			return true;
+		}
+
+		GetCollectibleState(search);
+		strcpy_s(DataTypeTemp, name.c_str());
+		Dest.Ptr = &DataTypeTemp[0];
+		Dest.Type = pStringType;
+
+		return true;
+
+	case CollectibleMembers::Expansion:
+		if (search == previoussearch && status != -1)
+		{
+			strcpy_s(DataTypeTemp, expansion.c_str());
+			Dest.Ptr = &DataTypeTemp[0];
+			Dest.Type = pStringType;
+			return true;
+		}
+
+		GetCollectibleState(search);
+		strcpy_s(DataTypeTemp, expansion.c_str());
+		Dest.Ptr = &DataTypeTemp[0];
+		Dest.Type = pStringType;
+
+		return true;
+
+	case CollectibleMembers::Collection:
+		if (search == previoussearch && status != -1)
+		{
+			strcpy_s(DataTypeTemp, collection.c_str());
+			Dest.Ptr = &DataTypeTemp[0];
+			Dest.Type = pStringType;
+			return true;
+		}
+
+		GetCollectibleState(search);
+		strcpy_s(DataTypeTemp, collection.c_str());
+		Dest.Ptr = &DataTypeTemp[0];
+		Dest.Type = pStringType;
+
+		return true;
+
+	case CollectibleMembers::FullCollection:
+		if (search == previoussearch && status != -1)
+		{
+			strcpy_s(DataTypeTemp, collectionexpansion.c_str());
+			Dest.Ptr = &DataTypeTemp[0];
+			Dest.Type = pStringType;
+			return true;
+		}
+
+		GetCollectibleState(search);
+		strcpy_s(DataTypeTemp, collectionexpansion.c_str());
+		Dest.Ptr = &DataTypeTemp[0];
+		Dest.Type = pStringType;
+
+		return true;
+
+	default:
+
+		break;
+	}
+
+	return false;
+}
+
+bool MQ2CollectibleType::dataCollectible(const char* szIndex, MQTypeVar& Ret)
+{
+	search = trimP(szIndex);
+
+	if (search.empty())
+	{
+		MacroError("[MQ2Collectible] Please provide a collectible name.");
+		return false;
+	}
+	if (search.size() > 128)
+	{
+		MacroError("[MQ2Collectible] Collectible name must be no more than 128 characters.");
+		return false;
+	}
+
+	Ret.DWord = 0;
+	Ret.Type = pCollectibleType;
+
+	return true;
 }
 
 // ----------------------------------------------
@@ -590,9 +855,11 @@ PLUGIN_API void InitializePlugin()
 	}
 
 	AddCommand("/collectible", CollectibleCMD);
-	//AddMQ2Data("Collectible", CollectibleTLO);
+	AddMQ2Data("Collectible", MQ2CollectibleType::dataCollectible);
+	
+	pCollectibleType = new MQ2CollectibleType;
 
-	WriteChatf("\aw[MQ2Collectible] \at/collectible -h \aoby American Nero (https://gitlab.com/redguides/plugins/mq2collectible)");
+	WriteChatf("\aw[MQ2Collectible] \at/collectible \aoby American Nero (https://gitlab.com/redguides/plugins/mq2collectible)");
 }
 
 PLUGIN_API void ShutdownPlugin()
@@ -601,6 +868,8 @@ PLUGIN_API void ShutdownPlugin()
 
 	RemoveCommand("/collectible");
 	RemoveMQ2Data("Collectible");
+
+	delete pCollectibleType;
 }
 
 /**

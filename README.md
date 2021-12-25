@@ -8,15 +8,16 @@
 ```
 /collectible collected|need|all|help log|bazaar|console optional: expansion|collection|collectible "name"
 
-${Collectible["collectible name"].Collected; .Expansion; .Collection; .Both}
+${Collectible["collectible name"].Collected|Status .Name .Expansion; .Collection; .FullCollection}
 ```
 
 - /collectible parameters must be ordered as shown.
-- The "name" must be enclosed by quotes.
+- The "name" must be enclosed by quotes. Case insensitive. Search using partial name.
 - The Collection and its components are returned when searching by Collectible.
 - Logfiles are appended to.
+- TLO collectible name need not be enclosed in quotes, is case insensitive and you may search by partial name, but returns the first match.
 
-### Parameter Abbreviations
+### /collectible Parameter Abbreviations
 
 ```
 -cd|collected
@@ -31,7 +32,7 @@ ${Collectible["collectible name"].Collected; .Expansion; .Collection; .Both}
 -cl|collectible
 ```
 
-## Command Examples
+## /collectible Examples
 
 When using the bazaar logfile option, please note:
 
@@ -98,18 +99,21 @@ etc.
 
 ## TLO Examples
 
- Returns -1 if the collectible is not found, otherwise 0|1 depending on whether it has been collected.
+ Returns 0|1 depending on whether it has been collected, or -1 if the collectible was not found. Partial name is accepted and returns the first collectible it matches. Case insensitive.
 ```
-${Collectible["collectible name"].Status}
+${Collectible["collectible name"].Collected}
 ```
-Returns -1 if not found, otherwise the name of the Expansion, Collection, or both.
+Returns the name of the Expansion, Collection, or -1 if the collectible was not found.
 ```
-${Collectible["Broken Wrist Shackles"].Status}     -> 0|1
-${Collectible["Broken Wrist Shackles"].Expansion}  -> "Terror of Luclin"
-${Collectible["Broken Wrist Shackles"].Collection} -> "Breaker of Chains"
-${Collectible["Broken Wrist Shackles"].Both}       -> "Breaker of Chains, Terror of Luclin"
-${Collectible["Brasse's Brassiere"].Status}        -> -1
-${Collectible["Brasse's Brassiere"].Collection}    -> -1
+${Collectible["Broken Wrist Shackles"].Status}         -> 0|1
+${Collectible["Broken Wrist Shackles"].Collected}      -> 0|1
+${Collectible["Broken Wrist Shackles"].ComponentID}    -> 290911301
+${Collectible["broken wrist shack"].Name}              -> "Broken Wrist Shackles"
+${Collectible["Broken Wrist Shackles"].Expansion}      -> "Terror of Luclin"
+${Collectible["Broken Wrist Shackles"].Collection}     -> "Breaker of Chains"
+${Collectible["Broken Wrist Shackles"].FullCollection} -> "Breaker of Chains, Terror of Luclin"
+${Collectible["Brasse's Brassiere"].Status}            -> -1
+${Collectible["Brasse's Brassiere"].Collection}        -> -1
 ```
 
 **Config\MQ2Hud.ini**
@@ -120,6 +124,6 @@ You may want to use something like boxhud instead... or perhaps that functionali
 
 ```
 [Elements]
-CollectionItemMOI = 7,30,0,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItem[=${EverQuest.LastMouseOver.Tooltip}]}]},Collected,Need]},""]},""]}
-CollectionItemMOB = 7,30,0,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItemBank[=${EverQuest.LastMouseOver.Tooltip}]}]},Collected,Need]},""]},""]}
+CollectionItemMO = 19,100,100,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItem[=${EverQuest.LastMouseOver.Tooltip}]}].Collected},Collected,Need]},""]},""]}
+CollectionItemMOB = 19,100,100,255,255,255 ,${If[${EverQuest.LastMouseOver.MouseOver},${If[${FindItem[=${EverQuest.LastMouseOver.Tooltip}].Collectible},${If[${Collectible[${FindItemBank[=${EverQuest.LastMouseOver.Tooltip}]}].Collected},Collected,Need]},""]},""]}
 ```
