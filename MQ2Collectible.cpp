@@ -16,7 +16,7 @@
 #include <mq/Plugin.h>
 
 PreSetup("MQ2Collectible");
-PLUGIN_VERSION(0.1);
+PLUGIN_VERSION(0.2);
 
 using namespace mq::datatypes;
 
@@ -578,17 +578,20 @@ class MQ2CollectibleType : public MQ2Type
 		bool GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest) override;
 		static bool dataCollectible(const char* szIndex, MQTypeVar& Ret);
 };
-
 MQ2CollectibleType* pCollectibleType = nullptr;
 
-static std::string search				= "";
-static std::string previoussearch		= "";
-static int id							= 0;
-static int status						= -1;
-static std::string name					= "-1";
-static std::string expansion			= "-1";
-static std::string collection			= "-1";
-static std::string collectionexpansion	= "-1";
+struct COLLECTIBLEELEMENT
+{
+	std::string query;
+	std::string previousQuery;
+	int id;
+	int status;
+	std::string name;
+	std::string expansion;
+	std::string collection;
+	std::string collectionExpansion;
+};
+COLLECTIBLEELEMENT* pCollectible = new COLLECTIBLEELEMENT;
 
 enum class CollectibleMembers
 {
@@ -615,7 +618,7 @@ MQ2CollectibleType::MQ2CollectibleType() : MQ2Type("collectible")
 // Given the name of a collectible, find the collection it belongs to.
 void MQ2CollectibleType::GetCollectibleState(std::string_view CollectibleName)
 {
-	previoussearch = search;
+	pCollectible->previousQuery = pCollectible->query;
 
 	// Find the category "Collections", then search through the achievements
 	// components. When found, check that the component is not itself an achievement
@@ -660,27 +663,24 @@ void MQ2CollectibleType::GetCollectibleState(std::string_view CollectibleName)
 				if (ci_find_substr(CompTypeCompletion.description, CollectibleName) < 0) continue;
 
 				// We may have been given a partial collectible name; grab the name from the object.
-				id = CompTypeCompletion.id;
-				status = AchCompInfo->IsComponentComplete(AchievementComponentCompletion, y) ? 1 : 0;
-				name = CompTypeCompletion.description;
-				collection = AchName;
-				expansion = AchParent.name;
-				collectionexpansion = fmt::format("{}, {}", AchName, AchParent.name);
-
-				//std::string tempStr = fmt::format("[{}] [{}] [{}] [{}] [{}]", status, name, collection, expansion, collectionexpansion);
-				//WriteChatf("%s", tempStr);
+				pCollectible->id = CompTypeCompletion.id;
+				pCollectible->status = AchCompInfo->IsComponentComplete(AchievementComponentCompletion, y) ? 1 : 0;
+				pCollectible->name = CompTypeCompletion.description;
+				pCollectible->collection = AchName;
+				pCollectible->expansion = AchParent.name;
+				pCollectible->collectionExpansion = fmt::format("{}, {}", AchName, AchParent.name);
 
 				return;
 			}
 		}
 	}
 
-	id = -1;
-	status = -1;
-	name = "-1";
-	collection = "-1";
-	expansion = "-1";
-	collectionexpansion = "-1";
+	pCollectible->id = -1;
+	pCollectible->status = -1;
+	pCollectible->name = "-1";
+	pCollectible->collection = "-1";
+	pCollectible->expansion = "-1";
+	pCollectible->collectionExpansion = "-1";
 
 	return;
 }
@@ -696,112 +696,112 @@ bool MQ2CollectibleType::GetMember(MQVarPtr VarPtr, const char* Member, char* In
 	switch (static_cast<CollectibleMembers>(pMember->ID))
 	{
 	case CollectibleMembers::ComponentID:
-		if (search == previoussearch && status == 1)
+		if (pCollectible->query == pCollectible->previousQuery && pCollectible->status == 1)
 		{
-			Dest.DWord = id;
+			Dest.DWord = pCollectible->id;
 			Dest.Type = pIntType;
 
 			return true;
 		}
 
-		GetCollectibleState(search);
-		Dest.DWord = id;
+		GetCollectibleState(pCollectible->query);
+		Dest.DWord = pCollectible->id;
 		Dest.Type = pIntType;
 
 		return true;
 
 		// Alias of Collected
 	case CollectibleMembers::Status:
-		if (search == previoussearch && status == 1)
+		if (pCollectible->query == pCollectible->previousQuery && pCollectible->status == 1)
 		{
-			Dest.DWord = status;
+			Dest.DWord = pCollectible->status;
 			Dest.Type = pIntType;
 
 			return true;
 		}
 
-		GetCollectibleState(search);
-		Dest.DWord = status;
+		GetCollectibleState(pCollectible->query);
+		Dest.DWord = pCollectible->status;
 		Dest.Type = pIntType;
 
 		return true;
 
 	case CollectibleMembers::Collected:
 
-		if (search == previoussearch && status == 1)
+		if (pCollectible->query == pCollectible->previousQuery && pCollectible->status == 1)
 		{
-			Dest.DWord = status;
+			Dest.DWord = pCollectible->status;
 			Dest.Type = pIntType;
 
 			return true;
 		}
 
-		GetCollectibleState(search);
-		Dest.DWord = status;
+		GetCollectibleState(pCollectible->query);
+		Dest.DWord = pCollectible->status;
 		Dest.Type = pIntType;
 
 		return true;
 
 	case CollectibleMembers::Name:
 
-		if (search == previoussearch && status != -1)
+		if (pCollectible->query == pCollectible->previousQuery && pCollectible->status != -1)
 		{
-			strcpy_s(DataTypeTemp, name.c_str());
+			strcpy_s(DataTypeTemp, pCollectible->name.c_str());
 			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 		}
 
-		GetCollectibleState(search);
-		strcpy_s(DataTypeTemp, name.c_str());
+		GetCollectibleState(pCollectible->query);
+		strcpy_s(DataTypeTemp, pCollectible->name.c_str());
 		Dest.Ptr = &DataTypeTemp[0];
 		Dest.Type = pStringType;
 
 		return true;
 
 	case CollectibleMembers::Expansion:
-		if (search == previoussearch && status != -1)
+		if (pCollectible->query == pCollectible->previousQuery && pCollectible->status != -1)
 		{
-			strcpy_s(DataTypeTemp, expansion.c_str());
+			strcpy_s(DataTypeTemp, pCollectible->expansion.c_str());
 			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 		}
 
-		GetCollectibleState(search);
-		strcpy_s(DataTypeTemp, expansion.c_str());
+		GetCollectibleState(pCollectible->query);
+		strcpy_s(DataTypeTemp, pCollectible->expansion.c_str());
 		Dest.Ptr = &DataTypeTemp[0];
 		Dest.Type = pStringType;
 
 		return true;
 
 	case CollectibleMembers::Collection:
-		if (search == previoussearch && status != -1)
+		if (pCollectible->query == pCollectible->previousQuery && pCollectible->status != -1)
 		{
-			strcpy_s(DataTypeTemp, collection.c_str());
+			strcpy_s(DataTypeTemp, pCollectible->collection.c_str());
 			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 		}
 
-		GetCollectibleState(search);
-		strcpy_s(DataTypeTemp, collection.c_str());
+		GetCollectibleState(pCollectible->query);
+		strcpy_s(DataTypeTemp, pCollectible->collection.c_str());
 		Dest.Ptr = &DataTypeTemp[0];
 		Dest.Type = pStringType;
 
 		return true;
 
 	case CollectibleMembers::FullCollection:
-		if (search == previoussearch && status != -1)
+		if (pCollectible->query == pCollectible->previousQuery && pCollectible->status != -1)
 		{
-			strcpy_s(DataTypeTemp, collectionexpansion.c_str());
+			strcpy_s(DataTypeTemp, pCollectible->collectionExpansion.c_str());
 			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 		}
 
-		GetCollectibleState(search);
-		strcpy_s(DataTypeTemp, collectionexpansion.c_str());
+		GetCollectibleState(pCollectible->query);
+		strcpy_s(DataTypeTemp, pCollectible->collectionExpansion.c_str());
 		Dest.Ptr = &DataTypeTemp[0];
 		Dest.Type = pStringType;
 
@@ -817,14 +817,14 @@ bool MQ2CollectibleType::GetMember(MQVarPtr VarPtr, const char* Member, char* In
 
 bool MQ2CollectibleType::dataCollectible(const char* szIndex, MQTypeVar& Ret)
 {
-	search = trimP(szIndex);
+	pCollectible->query = trimP(szIndex);
 
-	if (search.empty())
+	if (pCollectible->query.empty())
 	{
 		MacroError("[MQ2Collectible] Please provide a collectible name.");
 		return false;
 	}
-	if (search.size() > 128)
+	if (pCollectible->query.size() > 128)
 	{
 		MacroError("[MQ2Collectible] Collectible name must be no more than 128 characters.");
 		return false;
