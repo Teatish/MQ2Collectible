@@ -1,0 +1,1 @@
+Motivation: Wanted to mouseover a collectible in my inventory and know whether I'd collected it.  Laziness is a hell of a motivator.
