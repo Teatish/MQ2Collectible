@@ -16,7 +16,7 @@
 #include <mq/Plugin.h>
 
 PreSetup("MQ2Collectible");
-PLUGIN_VERSION(0.2);
+PLUGIN_VERSION(0.3);
 
 using namespace mq::datatypes;
 
